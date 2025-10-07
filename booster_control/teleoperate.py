@@ -36,6 +36,11 @@ def teleop(env_name: str = "LowerT1GoaliePenaltyKick-v0", pos_sensitivity:float 
         # Episode loop  
         while not (terminated or truncated):
             # Get keyboard input and apply it directly to the environment
+            if keyboard_controller.should_quit():
+                print("\n[INFO] ESC pressed — exiting teleop.")
+                env.close()
+                return
+            
             command = keyboard_controller.advance()
             ctrl = lower_t1_robot.get_actions(command, observation, info)
             observation, reward, terminated, truncated, info = env.step(ctrl)

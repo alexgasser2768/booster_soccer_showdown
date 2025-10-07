@@ -4,6 +4,7 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 import torch
+import glfw
 from stable_baselines3 import TD3
 from huggingface_hub import hf_hub_download
 
@@ -96,31 +97,53 @@ def main():
     base_env = gym.make(args.env, render_mode="human")
     env = CommandActionWrapper(base_env)
 
-    # Load model
-    try:
-        model = TD3.load(model_file, device=args.device)
-    except Exception as e:
-        print(f"[ERROR] Failed to load TD3 model from '{model_file}'. Details: {e}")
-        sys.exit(1)
+    viewer = getattr(env.base_env.mujoco_renderer, "viewer", None)
+    window = getattr(viewer, "window", None) if viewer is not None else None
 
-    # ---------- Rollout ----------
+
+    # ---- Load model ----
+    model = TD3.load(model_file, device=args.device)
+
+    # ---- Rollout ----
     for ep in range(args.episodes):
-        terminated = truncated = False
         obs, info = env.reset(seed=42 + ep)
-        action = np.array([0, 0, 0])
+        terminated = truncated = False
         ep_return = 0.0
+        print(f"[Episode {ep+1}] Running. Press ESC to stop.")
+
+        viewer = getattr(env.base_env.mujoco_renderer, "viewer", None)
+        window = getattr(viewer, "window", None) if viewer is not None else None
+
+
         while not (terminated or truncated):
 
+            if window is not None and glfw.get_current_context() is not None:
+                # Stop if user hit ESC inside the MuJoCo window
+                if glfw.get_key(window, glfw.KEY_ESCAPE) == glfw.PRESS:
+                    print("\n[INFO] ESC pressed — stopping and closing.")
+                    env.close()
+                    sys.exit(0)
+
+                # Stop if user clicked the window close button (red X)
+                if glfw.window_should_close(window):
+                    print("\n[INFO] Window closed — stopping and exiting.")
+                    env.close()
+                    sys.exit(0)
+                    
             if "KickToTarget" in args.env:
-                obs = env.lower_control.get_obs(action, obs, info)
+                obs = env.lower_control.get_obs(np.zeros(3), obs, info)
 
             action, _ = model.predict(obs, deterministic=True)
             obs, reward, terminated, truncated, info = env.step(action)
             ep_return += float(reward)
-        print(f"[Episode {ep+1}] return = {ep_return:.3f}")
 
-    if hasattr(env, "close"):
-        env.close()
+        print(f"[Episode {ep+1}] return = {ep_return:.3f}")
+        if stop_flag["stop"]:
+            break
+
+    env.close()
+    print("[INFO] Environment closed. Exiting.")
+
 
 if __name__ == "__main__":
     main()

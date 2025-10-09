@@ -5,7 +5,7 @@ from gymnasium import spaces
 import numpy as np
 import torch
 import glfw
-from stable_baselines3 import TD3
+from stable_baselines3 import TD3, SAC
 from huggingface_hub import hf_hub_download
 
 # Make repo root importable without absolute paths
@@ -44,7 +44,7 @@ def resolve_model_filename(env_id: str) -> str:
         return "models/td3_goalie_penalty_kick.zip"
     if "kick" in env_lc:
         # Adjust if your repo uses a different filename for the kicker model
-        return "models/td3_kick_to_target.zip"
+        return "models/sac_kick_to_target.zip"
     raise ValueError(
         f"Could not resolve a model for env '{env_id}'. "
     )
@@ -101,8 +101,10 @@ def main():
     window = getattr(viewer, "window", None) if viewer is not None else None
 
 
-    # ---- Load model ----
-    model = TD3.load(model_file, device=args.device)
+    if "KickToTarget" in args.env:
+        model = SAC.load(model_file, device=args.device)
+    else:
+        model = TD3.load(model_file, device=args.device)
 
     # ---- Rollout ----
     for ep in range(args.episodes):

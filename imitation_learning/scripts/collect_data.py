@@ -5,7 +5,7 @@ import os
 import sys
 
 # Make repo root importable without absolute paths
-repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+repo_root = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".."))
 sys.path.append(repo_root)
 
 import time
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     parser.add_argument("--env", type=str, default="LowerT1GoaliePenaltyKick-v0", help="The environment to teleoperate.")
     parser.add_argument("--pos_sensitivity", type=float, default=0.1, help="SE3 Keyboard position sensitivity.")
     parser.add_argument("--rot_sensitivity", type=float, default=0.5, help="SE3 Keyboard rotation sensitivity.")
-    parser.add_argument("--data_set_directory", type=str, default="./data/data1.npz", help="SE3 Keyboard rotation sensitivity.")
+    parser.add_argument("--data_set_directory", type=str, default="./data/data2.npz", help="SE3 Keyboard rotation sensitivity.")
 
     args = parser.parse_args()
 

@@ -68,7 +68,7 @@ def main(args):
         batch = train_dataset.sample(agent_config['batch_size'])
 
         obs_noise_key, key = jax.random.split(key)
-        noise_scale = 0.01  # Adjust noise magnitude (e.g., 0.01 or 0.005)
+        noise_scale = 0.04  # Adjust noise magnitude (e.g., 0.01 or 0.005)
         noisy_obs = batch['observations'] + noise_scale * jax.random.normal(
             obs_noise_key, batch['observations'].shape
         )

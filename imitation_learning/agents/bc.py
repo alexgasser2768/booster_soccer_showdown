@@ -12,22 +12,14 @@ from utils.flax_utils import ModuleDict, TrainState, nonpytree_field
 BC_CONFIG_DICT = {
     "agent_name": 'bc',  # Agent name.
     "lr": 1e-4,  # Learning rate.
-    "batch_size": 261,  # Batch size.
-    "actor_hidden_dims": (256, 256),  # Actor network hidden dimensions.
+    "batch_size": 1024,  # Batch size.
+    "actor_hidden_dims": (256, 256, 256),  # Actor network hidden dimensions.
     "discount": 0.99,  # Discount factor (unused by default; can be used for geometric goal sampling in GCDataset).
     "clip_threshold": 100.0,
     "const_std": True,  # Whether to use constant standard deviation for the actor.
     "discrete": False,  # Whether the action space is discrete.
     # Dataset hyperparameters.
     "dataset_class": 'Dataset',  # Dataset class name.
-    "value_p_curgoal": 0.0,  # Unused (defined for compatibility with GCDataset).
-    "value_p_trajgoal": 1.0,  # Unused (defined for compatibility with GCDataset).
-    "value_p_randomgoal": 0.0,  # Unused (defined for compatibility with GCDataset).
-    "value_geom_sample": False,  # Unused (defined for compatibility with GCDataset).
-    "actor_p_curgoal": 0.0,  # Probability of using the current state as the actor goal.
-    "actor_p_trajgoal": 1.0,  # Probability of using a future state in the same trajectory as the actor goal.
-    "actor_p_randomgoal": 0.0,  # Probability of using a random state as the actor goal.
-    "actor_geom_sample": False,  # Whether to use geometric sampling for future actor goals.
     "gc_negative": True,  # Unused (defined for compatibility with GCDataset).
 }
 

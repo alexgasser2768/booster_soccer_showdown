@@ -4,8 +4,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
 
+
 # ======================================================
-# 1. Define equivalent PyTorch network
+# 1. Define generic MLP + Actor class
 # ======================================================
 class TorchMLP(nn.Module):
     def __init__(self, input_dim, hidden_layers, activate_final=True, layer_norm=True):
@@ -14,7 +15,7 @@ class TorchMLP(nn.Module):
         self.layer_norms = nn.ModuleList()
         self.activate_final = activate_final
         self.layer_norm = layer_norm
-        
+
         last_dim = input_dim
         for h in hidden_layers:
             self.hidden_layers.append(nn.Linear(last_dim, h))
@@ -33,17 +34,15 @@ class TorchMLP(nn.Module):
 
 
 class TorchGCActor(nn.Module):
-    def __init__(self, obs_dim, hidden_layers, action_dim, const_std=False):
+    def __init__(self, obs_dim, hidden_layers, action_dim):
         super().__init__()
-        self.const_std = const_std
         self.actor_net = TorchMLP(obs_dim, hidden_layers, activate_final=True, layer_norm=True)
         last_hidden = hidden_layers[-1]
         self.mean_net = nn.Linear(last_hidden, action_dim)
         self.log_std_net = nn.Linear(last_hidden, action_dim)
     
-    def forward(self, obs, temperature=0.0):
-        x = obs
-        feat = self.actor_net(x)
+    def forward(self, obs, temperature=1.0):
+        feat = self.actor_net(obs)
         mean = self.mean_net(feat)
         log_std = self.log_std_net(feat)
         log_std = torch.clamp(log_std, -5.0, 2.0)
@@ -52,62 +51,88 @@ class TorchGCActor(nn.Module):
     
     @torch.no_grad()
     def get_actions(self, observation, temperature=1.0):
-        """
-        Equivalent to JAX get_actions()
-        - Produces a Gaussian policy
-        - Samples an action
-        - Clips to [-1, 1]
-        """
-        mean, std = self.forward(observation, temperature=temperature)
+        mean, std = self.forward(observation, temperature)
         dist = Normal(mean, std)
-        actions = dist.rsample()  # reparameterized sample
-        actions = torch.clamp(actions, -1.0, 1.0)
-        return actions
+        actions = dist.rsample()
+        return torch.clamp(actions, -1.0, 1.0)
+
 
 # ======================================================
-# 2. Load JAX weights (.pkl)
+# 2. Load JAX parameters dynamically
 # ======================================================
 pkl_path = "/Users/shaswatgarg/Documents/Job/ArenaX/Development/booster_soccer_showdown/imitation_learning/exp/booster/Debug/`cobot_pick_place_20251021-212615_bc/params_1000000.pkl"
 with open(pkl_path, "rb") as f:
     jax_params = pickle.load(f)
 
 params = jax_params["agent"]["network"]["params"]["modules_actor"]
+# ------------------------------------------------------
+# Infer network structure dynamically
+# ------------------------------------------------------
+actor_net = params["actor_net"]
+
+# Detect Dense layers and their sizes
+dense_layers = [k for k in actor_net.keys() if "Dense" in k]
+dense_layers.sort(key=lambda x: int(x.split("_")[-1]))  # ensure order
+
+hidden_sizes = [actor_net[d]["bias"].shape[0] for d in dense_layers]
+input_dim = actor_net[dense_layers[0]]["kernel"].shape[0]
+action_dim = params["mean_net"]["bias"].shape[0]
+
+print(f"Detected MLP structure: input_dim={input_dim}, hidden_layers={hidden_sizes}, action_dim={action_dim}")
 
 # ======================================================
-# 3. Initialize and load weights into PyTorch
+# 3. Initialize PyTorch model dynamically
 # ======================================================
-torch_model = TorchGCActor(obs_dim=51, hidden_layers=[256, 256], action_dim=12, const_std=False)
+torch_model = TorchGCActor(
+    obs_dim=input_dim,
+    hidden_layers=hidden_sizes,
+    action_dim=action_dim,
+)
 
+
+# ======================================================
+# 4. Helper functions for dynamic weight loading
+# ======================================================
 def load_dense(torch_layer, jax_layer):
     torch_layer.weight.data = torch.tensor(jax_layer["kernel"]).T
     torch_layer.bias.data = torch.tensor(jax_layer["bias"])
 
 def load_layernorm(torch_ln, jax_ln):
-    torch_ln.bias.data = torch.tensor(jax_ln["bias"])
     torch_ln.weight.data = torch.tensor(jax_ln["scale"])
+    torch_ln.bias.data = torch.tensor(jax_ln["bias"])
 
-# Load MLP (actor_net)
-actor_net = params["actor_net"]
-load_dense(torch_model.actor_net.hidden_layers[0], actor_net["Dense_0"])
-load_dense(torch_model.actor_net.hidden_layers[1], actor_net["Dense_1"])
-load_layernorm(torch_model.actor_net.layer_norms[0], actor_net["LayerNorm_0"])
-load_layernorm(torch_model.actor_net.layer_norms[1], actor_net["LayerNorm_1"])
 
-# Load heads
+# ======================================================
+# 5. Load weights dynamically
+# ======================================================
+# Load actor_net layers
+for i, dname in enumerate(dense_layers):
+    load_dense(torch_model.actor_net.hidden_layers[i], actor_net[dname])
+
+# Load LayerNorms if they exist
+ln_layers = [k for k in actor_net.keys() if "LayerNorm" in k]
+ln_layers.sort(key=lambda x: int(x.split("_")[-1]))
+
+for i, lname in enumerate(ln_layers):
+    load_layernorm(torch_model.actor_net.layer_norms[i], actor_net[lname])
+
+# Load output heads
 load_dense(torch_model.mean_net, params["mean_net"])
 load_dense(torch_model.log_std_net, params["log_std_net"])
 
+print("✅ Successfully loaded all weights dynamically!")
+
 # ======================================================
-# 4. Test forward pass
+# 6. Test forward pass
 # ======================================================
-obs = torch.randn(1, 51)
+obs = torch.randn(1, input_dim)
 mean, std = torch_model(obs)
 print("mean shape:", mean.shape, "std shape:", std.shape)
 
 # ======================================================
-# 5. Save TorchScript version
+# 7. Save TorchScript model
 # ======================================================
-scripted_model = torch.jit.trace(torch_model, (torch.randn(1, 51),))
+scripted_model = torch.jit.trace(torch_model, (torch.randn(1, input_dim),))
 torch.jit.save(scripted_model, "converted_gc_actor.pt")
 
-print("✅ TorchScript model saved as converted_gc_actor.pt")
+print("✅ TorchScript model saved as converted_gc_actor_dynamic.pt")

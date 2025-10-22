@@ -55,7 +55,8 @@ def main(args):
     observation, info = env.reset()
     i = 0
     while True:
-        preprocessed_observation = preprocessor.modify_state(observation.copy(), info.copy())
+        preprocessed_observation = train_dataset["observations"][i]
+        # preprocessed_observation = preprocessor.modify_state(observation.copy(), info.copy())
         action = agent(observation=preprocessed_observation, temperature=0.0)
         action = np.array(action)
         i += 1

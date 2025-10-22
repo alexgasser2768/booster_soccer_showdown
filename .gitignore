@@ -208,5 +208,4 @@ __marimo__/
 
 .DS_Store
 /imitation_learning/exp/
-*.pt
 /data/

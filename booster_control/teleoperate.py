@@ -58,15 +58,10 @@ def teleop(env_name: str = "LowerT1GoaliePenaltyKick-v0", pos_sensitivity:float 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser("Teleoperate T1 robot in a gymnasium environment.")
-    parser.add_argument(
-        "--env", type=str, default="LowerT1GoaliePenaltyKick-v0", help="The environment to teleoperate."
-    )
-    parser.add_argument(
-        "--pos_sensitivity", type=float, default=0.1, help="SE3 Keyboard position sensitivity."
-    )
-    parser.add_argument(
-        "--rot_sensitivity", type=float, default=0.5, help="SE3 Keyboard rotation sensitivity."
-    )
+    parser.add_argument("--env", type=str, default="LowerT1GoaliePenaltyKick-v0", help="The environment to teleoperate.")
+    parser.add_argument("--pos_sensitivity", type=float, default=0.1, help="SE3 Keyboard position sensitivity.")
+    parser.add_argument("--rot_sensitivity", type=float, default=0.5, help="SE3 Keyboard rotation sensitivity.")
+    parser.add_argument("--record_data", type=bool, default=True, help="Whether to collect data.")
 
     args = parser.parse_args()
 

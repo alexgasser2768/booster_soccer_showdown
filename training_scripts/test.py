@@ -140,8 +140,6 @@ def main():
             ep_return += float(reward)
 
         print(f"[Episode {ep+1}] return = {ep_return:.3f}")
-        if stop_flag["stop"]:
-            break
 
     env.close()
     print("[INFO] Environment closed. Exiting.")

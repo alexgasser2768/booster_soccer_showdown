@@ -1,5 +1,4 @@
 import os
-import torch
 import numpy as np
 from sai_rl import SAIClient
 from model import BoosterModel
@@ -9,8 +8,9 @@ sai = SAIClient(comp_id="lower-t1-penalty-kick-goalie")
 ## Make the environment
 env = sai.make_env()
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
 ## Create the model
-model = BoosterModel(model_path="./converted_gc_actor.pt")
+model = BoosterModel(model_path=f"{script_dir}/model.pt")
 
 class Preprocessor():
 

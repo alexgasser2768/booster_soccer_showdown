@@ -28,7 +28,7 @@ class CommandActionWrapper(gym.ActionWrapper):
         # NOTE: relies on base_env private getters; works but is brittle.
         observation = self.base_env._get_obs()
         info = self.base_env._get_info()
-        ctrl = self.lower_control.get_actions(command, observation, info)
+        ctrl, _ = self.lower_control.get_actions(command, observation, info)
         return ctrl
 
 
@@ -140,8 +140,6 @@ def main():
             ep_return += float(reward)
 
         print(f"[Episode {ep+1}] return = {ep_return:.3f}")
-        if stop_flag["stop"]:
-            break
 
     env.close()
     print("[INFO] Environment closed. Exiting.")

@@ -28,7 +28,7 @@ class CommandActionWrapper(gym.ActionWrapper):
         # NOTE: relies on base_env private getters; works but is brittle.
         observation = self.base_env._get_obs()
         info = self.base_env._get_info()
-        ctrl = self.lower_control.get_actions(command, observation, info)
+        ctrl, _ = self.lower_control.get_actions(command, observation, info)
         return ctrl
 
 

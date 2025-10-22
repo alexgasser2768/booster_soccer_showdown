@@ -233,7 +233,7 @@ class LowerT1JoyStick:
         self.it += 1
         self.gait_process = np.fmod(self.gait_process + self.cfg["sim"]["dt"] * self.gait_frequency, 1.0)
 
-        return ctrl
+        return ctrl, self.actions.copy()
     
     def get_torque(self, observation, actions):
         """
@@ -250,8 +250,8 @@ class LowerT1JoyStick:
         """
         
         _, mj_model = self.get_env_data_model(self.env)
-        dof_pos = observation[11:23] + self.default_dof_pos
-        dof_vel = observation[23:35] / self.cfg["normalization"]["dof_vel"]
+        dof_pos = observation[:12]
+        dof_vel = observation[12:24]
 
         dof_targets = self.default_dof_pos + self.cfg["control"]["action_scale"] * actions
         

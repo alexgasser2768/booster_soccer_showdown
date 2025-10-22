@@ -43,11 +43,11 @@ def main(args):
     data["observations"] = np.array(train_dataset["observations"], dtype=np.float32)
     data["actions"] = np.array(train_dataset["actions"], dtype=np.float32)
         
-    
+    print(data["observations"].shape)
     (agent_class, agent_config) = agents[args.agents]
-    buffer_class = buffers[agent_config["dataset_class"]]
 
     if agent_config["dataset_class"] != "Dataset":
+        buffer_class = buffers[agent_config["dataset_class"]]
         train_dataset = buffer_class(Dataset.create(**data),agent_config)
     else:
         train_dataset = Dataset.create(**data)
@@ -95,8 +95,8 @@ if __name__ == "__main__":
     parser.add_argument('--agents', type=str, default="bc", help='Agent to load.')
 
     # Environment
-    parser.add_argument('--env_name', type=str, default='`cobot_pick_place-v0', help='Environment (dataset) name.')
-    parser.add_argument('--dataset_dir', type=str, default="./data", help='Dataset directory.')
+    parser.add_argument('--env_name', type=str, default='LowerT1GoaliePenaltyKick-v0', help='Environment (dataset) name.')
+    parser.add_argument('--dataset_dir', type=str, default="./data/data1.npz", help='Dataset directory.')
     parser.add_argument('--dataset_replace_interval', type=int, default=1000, help='Dataset replace interval.')
     parser.add_argument('--num_datasets', type=int, default=None, help='Number of datasets to use.')
 

@@ -17,6 +17,7 @@ from utils.buffers import buffers, Dataset
 from utils.evaluation import *
 from utils.flax_utils import restore_agent
 from booster_control.t1_utils import LowerT1JoyStick
+from imitation_learning.preprocessor import Preprocessor
 
 def main(args):
 
@@ -49,12 +50,13 @@ def main(args):
 
     env = gym.make(args.env_name, render_mode="human")
     lower_t1_robot = LowerT1JoyStick(env.unwrapped)
+    preprocessor = Preprocessor()
 
     observation, info = env.reset()
     i = 0
     while True:
-        observation = train_dataset["observations"][i]
-        action = agent(observation=observation, temperature=0.0)
+        preprocessed_observation = preprocessor.modify_state(observation.copy(), info.copy())
+        action = agent(observation=preprocessed_observation, temperature=0.0)
         action = np.array(action)
         i += 1
         ctrl = lower_t1_robot.get_torque(observation, action)
@@ -77,7 +79,7 @@ if __name__ == "__main__":
     parser.add_argument('--eval_episodes', type=int, default=20, help='Number of episodes for each task.')
 
     # Save / restore
-    parser.add_argument('--restore_path', type=str, default='/Users/shaswatgarg/Documents/Job/ArenaX/Development/booster_soccer_showdown/', help='Save directory.')
+    parser.add_argument('--restore_path', type=str, default='./exp/booster/Debug/`cobot_pick_place_20251021-212615_bc/', help='Save directory.')
     parser.add_argument('--restore_epoch', type=int, default=1000000, help='Epoch checkpoint.')
 
     args = parser.parse_args()

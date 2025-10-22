@@ -67,15 +67,15 @@ def main(args):
         sample_key, key = jax.random.split(key)
         batch = train_dataset.sample(agent_config['batch_size'])
 
-        obs_noise_key, key = jax.random.split(key)
-        noise_scale = 0.04  # Adjust noise magnitude (e.g., 0.01 or 0.005)
-        noisy_obs = batch['observations'] + noise_scale * jax.random.normal(
-            obs_noise_key, batch['observations'].shape
-        )
+        if args.add_noise:
+            obs_noise_key, key = jax.random.split(key)
+            noisy_obs = batch['observations'] + args.noise_scale * jax.random.normal(
+                obs_noise_key, batch['observations'].shape
+            )
 
-        # Replace in batch (JAX PyTree-safe update)
-        batch = batch.copy()
-        batch['observations'] = noisy_obs
+            # Replace in batch (JAX PyTree-safe update)
+            batch = batch.copy()
+            batch['observations'] = noisy_obs
 
         agent, update_info = agent.update(batch)
 
@@ -118,6 +118,8 @@ if __name__ == "__main__":
     parser.add_argument('--offline_steps', type=int, default=1000000, help='Number of offline steps.')
     parser.add_argument('--log_interval', type=int, default=5000, help='Logging interval.')
     parser.add_argument('--save_interval', type=int, default=100000, help='Saving interval.')
+    parser.add_argument("--add_noise", type=bool, default=False, help="Add noise to observation space?")
+    parser.add_argument("--noise_scale", type=int, default=0.01, help="How much noise to add?")
 
     # Evaluation
     parser.add_argument('--video_episodes', type=int, default=1, help='Number of video episodes for each task.')

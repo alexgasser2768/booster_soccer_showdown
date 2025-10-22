@@ -17,7 +17,7 @@ from utils.buffers import buffers, Dataset
 from utils.evaluation import *
 from utils.flax_utils import restore_agent
 from booster_control.t1_utils import LowerT1JoyStick
-from imitation_learning.preprocessor import Preprocessor
+from imitation_learning.scripts.preprocessor import Preprocessor
 
 def main(args):
 
@@ -55,8 +55,7 @@ def main(args):
     observation, info = env.reset()
     i = 0
     while True:
-        preprocessed_observation = train_dataset["observations"][i]
-        # preprocessed_observation = preprocessor.modify_state(observation.copy(), info.copy())
+        preprocessed_observation = preprocessor.modify_state(observation.copy(), info.copy())
         action = agent(observation=preprocessed_observation, temperature=0.0)
         action = np.array(action)
         i += 1

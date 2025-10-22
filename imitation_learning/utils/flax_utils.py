@@ -219,7 +219,7 @@ def restore_agent(agent, restore_path, restore_epoch):
 
     with open(restore_path, 'rb') as f:
         load_dict = pickle.load(f)
-    print(load_dict)
+
     agent = flax.serialization.from_state_dict(agent, load_dict['agent'])
 
     print(f'Restored from {restore_path}')

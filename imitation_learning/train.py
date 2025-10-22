@@ -1,12 +1,10 @@
 import os
-import json
 import wandb
 import time
 import tqdm
 import random
 import argparse
 import numpy as np
-from collections import defaultdict
 
 from agents import agents
 

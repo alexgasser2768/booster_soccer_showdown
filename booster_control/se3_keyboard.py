@@ -161,6 +161,21 @@ class Se3Keyboard:
                 pass
             return
 
+
+
+        qwerty_to_azerty = {
+            81: 65,   # Q (81) -> A (65)
+            87: 90,   # W (87) -> Z (90)
+            65: 81,   # A (65) -> Q (81)
+            90: 87,   # Z (90) -> W (87)
+            # M stays M (77)
+            # Other keys remain the same
+        }
+        # print left arrow key code for debugging
+
+        if key in qwerty_to_azerty:
+            key = qwerty_to_azerty[key]
+
         try:
             # Map arrow keys directly using a dictionary
             arrow_keys = {
@@ -174,9 +189,11 @@ class Se3Keyboard:
                 key_char = arrow_keys[key]
             else:
                 key_char = chr(key).upper()
+    
         except ValueError:
             # Not a printable character
             return
+        print(f"Key event: key={key_char}, action={action}")
 
         if key_char in self._INPUT_KEY_MAPPING.keys():
             # Handle key press
@@ -195,11 +212,17 @@ class Se3Keyboard:
     def _handle_key_press(self, key_char):
         """Handle key press events."""
         # Apply the command when pressed
+        print(f"Key pressed: {key_char}")
         if key_char == "L":
             self.reset()
         elif key_char == "P" and self._reset_env_callback:
             self._reset_env_callback()
-        elif key_char in ["W", "S", "A", "D", "Q", "E"]:
+        
+        elif key_char == "K":
+            if 'K' in self._additional_callbacks:
+                print("Kick command triggered.")
+                self._additional_callbacks['K']()
+        elif key_char in ["UP", "DOWN", "LEFT", "RIGHT", "Q", "E"]:
             self._delta_vel += self._INPUT_KEY_MAPPING[key_char]
 
         # Additional callbacks
@@ -209,22 +232,23 @@ class Se3Keyboard:
     def _handle_key_release(self, key_char):
         """Handle key release events."""
         # Remove the command when un-pressed
-        if key_char in ["W", "S", "A", "D", "Q", "E"]:
+        if key_char in ["UP", "DOWN", "LEFT", "RIGHT", "Q", "E"]:
             self._delta_vel -= self._INPUT_KEY_MAPPING[key_char]
 
     def _create_key_bindings(self):
         """Creates default key binding."""
         self._INPUT_KEY_MAPPING = {
             # x-axis (forward)
-            "W": np.asarray([1.0, 0.0, 0.0]) * self.pos_sensitivity,
-            "S": np.asarray([-1.0, 0.0, 0.0]) * self.pos_sensitivity,
+            "UP": np.asarray([1.0, 0.0, 0.0]) * self.pos_sensitivity,
+            "DOWN": np.asarray([-1.0, 0.0, 0.0]) * self.pos_sensitivity,
             # y-axis (left-right)
-            "A": np.asarray([0.0, 1.0, 0.0]) * self.pos_sensitivity,
-            "D": np.asarray([0.0, -1.0, 0.0]) * self.pos_sensitivity,
+            "LEFT": np.asarray([0.0, 1.0, 0.0]) * self.pos_sensitivity,
+            "RIGHT": np.asarray([0.0, -1.0, 0.0]) * self.pos_sensitivity,
             # z-axis (rotation)
             "Q": np.asarray([0.0, 0.0, 1.0]) * self.rot_sensitivity,
             "E": np.asarray([0.0, 0.0, -1.0]) * self.rot_sensitivity,
             # reset commands
             "L": self.reset,
             "P": self._reset_env_callback,
+            "K": "KICK",  # Placeholder for kick command
         }

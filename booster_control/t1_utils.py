@@ -49,6 +49,12 @@ class LowerT1JoyStick:
         self.get_robot_properties(env)
         self.reset(env)
 
+        # Kick motion state
+        self.is_kicking = False
+        self.kick_frame = 0
+        self.kick_motion = None
+        self.load_kick_motion()
+
     @staticmethod
     def quat_rotate_inverse(q: np.ndarray, v: np.ndarray):
         """
@@ -71,6 +77,77 @@ class LowerT1JoyStick:
         b = np.cross(q_vec, v) * (q_w * 2.0)
         c = q_vec * (np.dot(q_vec, v) * 2.0)
         return a - b + c
+
+    def load_kick_motion(self):
+        """Load the kick motion from the kick_ball.npz file."""
+        try:
+            # Adjust the path to your kick_ball.npz location
+            kick_data = np.load("booster_dataset/kick_ball1.npz")
+            print("🔄 Loading kick motion from kick_ball1.npz...")
+            print(f"Available keys: {kick_data.files}")
+            
+            # Extract qpos which contains: [root_pos (3), root_quat (4), dof_pos (njnt)]
+            qpos = kick_data["qpos"]  # Shape: (num_frames, 7 + njnt)
+            njnt = int(kick_data["njnt"])  # Number of joints
+            
+            print(f"qpos shape: {qpos.shape}, number of joints: {njnt}")
+            
+            # Extract only the DOF positions (skip root position and orientation)
+            # qpos structure: [x, y, z, qw, qx, qy, qz, joint1, joint2, ..., jointN]
+            full_dof_pos = qpos[:, 7:]  # Skip first 7 elements (3 pos + 4 quat)
+            
+            # Extract only lower body joints (first 12 DOFs)
+            if full_dof_pos.shape[1] >= self.cfg["env"]["num_actions"]:
+                self.kick_motion = full_dof_pos[:, :self.cfg["env"]["num_actions"]]
+                print(f"✅ Loaded kick motion: {self.kick_motion.shape[0]} frames, "
+                      f"extracted {self.kick_motion.shape[1]} lower body joints from {full_dof_pos.shape[1]} total joints")
+            else:
+                self.kick_motion = full_dof_pos
+                print(f"✅ Loaded kick motion: {self.kick_motion.shape[0]} frames with {self.kick_motion.shape[1]} joints")
+            
+            # Convert from absolute positions to actions (relative to default pose)
+            # Actions are deviations from default joint positions
+            self.kick_motion = (self.kick_motion - self.default_dof_pos) / self.cfg["control"]["action_scale"]
+            print(f"✅ Kick motion converted to actions (normalized)")
+                
+        except FileNotFoundError:
+            print("⚠️ Warning: kick_ball.npz not found. Kick motion disabled.")
+            self.kick_motion = None
+        except Exception as e:
+            print(f"⚠️ Error loading kick motion: {e}")
+            import traceback
+            traceback.print_exc()
+            self.kick_motion = None
+
+    def trigger_kick(self):
+        """Trigger a kick motion."""
+        if self.kick_motion is not None and not self.is_kicking:
+            print("🦵 Kick triggered!")
+            self.is_kicking = True
+            self.kick_frame = 0
+
+
+    def get_kick_actions(self):
+        """
+        Get actions from the pre-recorded kick motion.
+        
+        Returns:
+            np.ndarray: Actions for kick motion, or None if not kicking.
+        """
+        if not self.is_kicking or self.kick_motion is None:
+            return None
+        
+        # Get current frame's actions
+        if self.kick_frame < len(self.kick_motion):
+            actions = self.kick_motion[self.kick_frame].copy()
+            self.kick_frame += 1
+            return actions
+        else:
+            # Kick motion completed
+            self.is_kicking = False
+            self.kick_frame = 0
+            print("✅ Kick completed!")
+            return None
 
     def load(self):
 
@@ -197,33 +274,36 @@ class LowerT1JoyStick:
         obs[35:47] = self.actions
 
         return obs
-    
+
     def get_actions(self, command, observation, info):
         """
         Generates joint control signals based on the current observation
         and the policy model.
-
-        Args:
-            command (tuple/list): Desired (lin_vel_x, lin_vel_y, ang_vel_yaw).  
-            obs (np.array): Current observation from the environment
-            info (dict): Information dict from the environment
-
-        Returns:
-            np.ndarray: Control signals for the actuators.
         """
         
         _, mj_model = self.get_env_data_model(self.env)
-        obs = self.get_obs(command, observation, info)
+        
+        # Check if kick motion is active
+        kick_actions = self.get_kick_actions()
+        if kick_actions is not None:
+            # During kick, stop walking and use kick motion
+            obs = self.get_obs((0, 0, 0), observation, info)
+            self.actions[:] = kick_actions
+        else:
+            # Normal walking behavior
+            obs = self.get_obs(command, observation, info)
+            dof_pos = observation[:12]
+            dof_vel = observation[12:24]
 
-        dof_pos = observation[:12]
-        dof_vel = observation[12:24]
-
-        if self.it % self.cfg["control"]["decimation"] == 0:
-            dist = self.model(torch.tensor(obs.reshape(1,-1)))
-            self.actions[:] = dist.detach().numpy()
-            self.actions[:] = np.clip(self.actions, -self.cfg["normalization"]["clip_actions"], self.cfg["normalization"]["clip_actions"])
+            if self.it % self.cfg["control"]["decimation"] == 0:
+                dist = self.model(torch.tensor(obs.reshape(1,-1)))
+                self.actions[:] = dist.detach().numpy()
+                self.actions[:] = np.clip(self.actions, -self.cfg["normalization"]["clip_actions"], self.cfg["normalization"]["clip_actions"])
         
         self.dof_targets[:] = self.default_dof_pos + self.cfg["control"]["action_scale"] * self.actions
+        
+        dof_pos = observation[:12]
+        dof_vel = observation[12:24]
         ctrl = np.clip(
             self.dof_stiffness * (self.dof_targets - dof_pos) - self.dof_damping * dof_vel,
             mj_model.actuator_ctrlrange[self.diff:, 0],
@@ -231,7 +311,8 @@ class LowerT1JoyStick:
         )
 
         self.it += 1
-        self.gait_process = np.fmod(self.gait_process + self.cfg["sim"]["dt"] * self.gait_frequency, 1.0)
+        if not self.is_kicking:  # Don't update gait during kick
+            self.gait_process = np.fmod(self.gait_process + self.cfg["sim"]["dt"] * self.gait_frequency, 1.0)
 
         return ctrl, self.actions.copy()
     

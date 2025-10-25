@@ -24,6 +24,9 @@ def teleop(env_name: str = "LowerT1GoaliePenaltyKick-v0", pos_sensitivity:float 
     print("\nKeyboard Controls:")
     print(keyboard_controller)
 
+    # Register Kick
+    keyboard_controller.add_callback('K', lower_t1_robot.trigger_kick)
+
     # Main teleoperation loop
     episode_count = 0
     while True:

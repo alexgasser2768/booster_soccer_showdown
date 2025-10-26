@@ -81,7 +81,7 @@ Shooting is essentially complicated passing in 3D with more force.
 
 The robot state will consist of the 5 past frames.
 
-- Joint positions (28 components)
+- Joint positions between [-1, 1] (28 components)
 - Robot position and orientation (3 components)
 - Ball position (2 components)
 - Pass Target position (2 components)

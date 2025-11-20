@@ -1,17 +1,26 @@
-# inputs
+# Inputs
 
-- FOR EACH POSITION WE NEED A VELOCITY (MAYBE USE ACCELERATION) reduces number of inputs
+All inputs will be scaled to between [-1, 1]:
+- The observation vector (joints positions and velocities) will be scaled by tanh
+- Positions will be scaled by down by 25
+- Velocities will be scaled by tanh
+- Orientation will be a unit quaternion
 
-- joint positions between [-1,1] (28 joints -> 56 inputs)
-- world robot position [x,y,yaw] (6 inputs)
-- world ball position [x,y] (4 inputs)
-- target for ball [x_min,y_min,z_min,x_max,y_max,z_max] (12 inputs)
+Robot State (73 components):
+- Joint positions & velocities (45 components)
+- Robot orientation (4 components)
+- Robot angualr velocity (3 components)
+- Robot linear velocity (3 components)
+- Robot linear acceleration (3 components)
+- Ball position relative to robot (3 components)
+- Ball linear velocity relative to robot (3 components)
+- Ball angular velocity relative to robot (3 components)
+- Goalkeeper position relative to robot (3 components)
+- Goalkeeper linear velocity relative to robot (3 components)
 
-- 78 total inputs
+# Outputs
 
-# outputs
-
-- joint velocities (28 outputs)
+- Joint Velocities between [-1, 1] (12 Outputs)
 
 
 ## default observation from info
@@ -23,37 +32,37 @@
     "goal_width": 1.6,
     "goal_height": 1.9,
     "goal_depth": 1.6,
-    "goal_team_0_rel_robot": [
+    "goal_team_0_rel_robot": [  // Position of HOME goal relative to robot
         -4.200000000000001,
         0.0,
         -0.7
     ],
-    "goal_team_1_rel_robot": [
+    "goal_team_1_rel_robot": [  // Position of AWAY goal relative to robot
         17.740000000000002,
         0.0,
         -0.7
     ],
-    "goal_team_0_rel_ball": [
+    "goal_team_0_rel_ball": [  // Position of HOME goal relative to ball
         -2.200000000000001,
         0.0,
         0.0
     ],
-    "goal_team_1_rel_ball": [
+    "goal_team_1_rel_ball": [  // Position of AWAY goal relative to ball
         19.740000000000002,
         0.0,
         0.0
     ],
-    "ball_xpos_rel_robot": [
+    "ball_xpos_rel_robot": [  // Position of ball relative to robot
         -2.0,
         0.0,
         -0.7
     ],
-    "ball_velp_rel_robot": [
+    "ball_velp_rel_robot": [  // Linear velocity of ball relative to robot
         0.0,
         0.0,
         0.0
     ],
-    "ball_velr_rel_robot": [
+    "ball_velr_rel_robot": [  // Angular velocity of ball relative to robot
         0.0,
         0.0,
         0.0
@@ -62,53 +71,53 @@
         1,
         0
     ],
-    "robot_accelerometer": [
+    "robot_accelerometer": [  // Acceleration of robot
         -1.3136856325115598e-16,
         4.3332978045500977e-17,
         -2.0261972540059053e-15
     ],
-    "robot_gyro": [
+    "robot_gyro": [  // Angular velocity of robot
         0.0,
         0.0,
         0.0
     ],
-    "robot_velocimeter": [
+    "robot_velocimeter": [  // Linear velocity of robot
         0.0,
         0.0,
         0.0
     ],
-    "robot_quat": [
+    "robot_quat": [  // Orientation of robot
         0.0,
         0.0,
         0.9999997019767761,
         0.0007963267271406949
     ],
-    "goalkeeper_team_0_xpos_rel_robot": [
+    "goalkeeper_team_0_xpos_rel_robot": [  // Position of HOME goalkeeper relative to robot
         -4.200000000000001,
         0.0,
         -0.49999999999999994
     ],
-    "goalkeeper_team_0_velp_rel_robot": [
+    "goalkeeper_team_0_velp_rel_robot": [  // Linear velocity of HOME goalkeeper relative to robot
         0.0,
         0.0,
         0.0
     ],
-    "goalkeeper_team_1_xpos_rel_robot": [
+    "goalkeeper_team_1_xpos_rel_robot": [  // Position of AWAY goalkeeper relative to robot
         17.740000000000002,
         0.0,
         -0.49999999999999994
     ],
-    "goalkeeper_team_1_velp_rel_robot": [
+    "goalkeeper_team_1_velp_rel_robot": [  // Linear velocity of AWAY goalkeeper relative to robot
         0.0,
         0.0,
         0.0
     ],
-    "target_xpos_rel_robot": [
+    "target_xpos_rel_robot": [  // Position of target relative to robot
         0.0,
         0.0,
         0.0
     ],
-    "target_velp_rel_robot": [
+    "target_velp_rel_robot": [  // Linear velocity of target relative to robot
         0.0,
         0.0,
         0.0

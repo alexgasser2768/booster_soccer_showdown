@@ -38,13 +38,6 @@ def teleop(env_name: str = "LowerT1KickToTarget-v0", pos_sensitivity:float = 0.1
         "actions" : []
     }
 
-    observation, info = env.reset()
-    with open('info.json', 'w') as f:
-        json.dump(
-            {k: v.tolist() if isinstance(v, np.ndarray) else v for k, v in info.items()},
-            f
-        )
-
     # Main teleoperation loop
     episode_count = 0
     while True:

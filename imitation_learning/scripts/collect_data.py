@@ -1,7 +1,7 @@
 """
 Teleoperate T1 robot in a gymnasium environment using a keyboard.
 """
-import os
+import os, json
 import sys
 
 # Make repo root importable without absolute paths
@@ -17,7 +17,7 @@ from booster_control.se3_keyboard import Se3Keyboard
 from booster_control.t1_utils import LowerT1JoyStick
 from imitation_learning.scripts.preprocessor import Preprocessor
 
-def teleop(env_name: str = "LowerT1GoaliePenaltyKick-v0", pos_sensitivity:float = 0.1, rot_sensitivity:float = 1.5, dataset_directory = "./data.npz"):
+def teleop(env_name: str = "LowerT1KickToTarget-v0", pos_sensitivity:float = 0.1, rot_sensitivity:float = 1.5, dataset_directory = "./data.npz"):
 
     env = gym.make(env_name, render_mode="human")
     lower_t1_robot = LowerT1JoyStick(env.unwrapped)
@@ -38,12 +38,20 @@ def teleop(env_name: str = "LowerT1GoaliePenaltyKick-v0", pos_sensitivity:float 
         "actions" : []
     }
 
+    observation, info = env.reset()
+    with open('info.json', 'w') as f:
+        json.dump(
+            {k: v.tolist() if isinstance(v, np.ndarray) else v for k, v in info.items()},
+            f
+        )
+
     # Main teleoperation loop
     episode_count = 0
     while True:
         # Reset environment for new episode
         terminated = truncated = False
         observation, info = env.reset()
+
         episode_count += 1
 
         episode = {
@@ -52,7 +60,7 @@ def teleop(env_name: str = "LowerT1GoaliePenaltyKick-v0", pos_sensitivity:float 
         }
 
         print(f"\nStarting episode {episode_count}")
-        # Episode loop  
+        # Episode loop
         while not (terminated or truncated):
 
             preprocessed_observation = preprocessor.modify_state(observation.copy(), info.copy())
@@ -62,7 +70,7 @@ def teleop(env_name: str = "LowerT1GoaliePenaltyKick-v0", pos_sensitivity:float 
                 np.savez(dataset_directory, observations=dataset["observations"], actions=dataset["actions"])
                 env.close()
                 return
-            
+
             command = keyboard_controller.advance()
             ctrl, actions = lower_t1_robot.get_actions(command, observation, info)
 
@@ -73,7 +81,7 @@ def teleop(env_name: str = "LowerT1GoaliePenaltyKick-v0", pos_sensitivity:float 
 
             if terminated or truncated:
                 break
-        
+
         dataset["observations"].extend(episode["observations"])
         dataset["actions"].extend(episode["actions"])
         # Print episode result

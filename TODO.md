@@ -1,1 +1,17 @@
-- [ ] 
+- [ ] Become familiar with Mujoco:
+    - [ ] Understand how the environment is set and how to change the robot and ball spawn positions
+    - [ ] Understand how to set reward and how to set success/termination state
+    - [ ] Understand how to detect falls and terminate
+    - [ ] Understand how to manipulate info and observation data
+- [ ] Implement the RL agent:
+    - [ ] Implement the NN architecture
+    - [ ] Implement the PPO agent
+    - [ ] Implement a WandB interface
+    - [ ] Test the agent with regular environment
+    - [ ] Test the agent in headless mode
+    - [ ] Test with multiple agents in regular and headless modes
+- [ ] Begin training the model
+    - [ ] Implement the reward environment for learning running
+    - [ ] Implement the reward environment for learning passing
+    - [ ] Implement the reward environment for learning shooting
+- [ ] Train model

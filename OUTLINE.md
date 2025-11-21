@@ -1,6 +1,6 @@
 # Reward Structure
 
-## Learn Kinematics
+## Learn running
 
 - Behavior cloning to run
 - Make the model to run in a straight line for as long as possible and as fast as possible:

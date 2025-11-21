@@ -1,4 +1,11 @@
+# Humanoid Soccer Learning Task
+
+This project was inspired by the SAI humanoid robot competition. The goal is to teach the Booster T1 robot how
+to score goals in a simulated environment. The 
+
 # Reward Structure
+
+As a rule of thumb, each episode is 10 seconds unless mentioned otherwise.
 
 ## Learn running
 
@@ -11,10 +18,11 @@
     - Reward will be based on the difference in distance from previous episode and now:
         - If robot moved towards the target (difference is negative), the reward will be +1
         - If robot moved away from the target (difference is positive), the reward will be -1
-    - Reward will have +1 if he stays within 1 meter of the target
+    - Reward will be +1 if he stays within 1 meter of the target
 - Make the model run in random directions and then stop without falling
     - Same reward structure as previous task
     - Target location will change to a random position every 5-10 seconds (time chosen is random)
+    - Each episode will have 2-10 runs (2-10 runs * 5-10 seconds per run = 10-100 seconds)
 
 ## Learn passing
 
@@ -25,21 +33,24 @@ make the target further and further (Curriculum Learning).
     - Reward always has a -1 for time
     - If he falls, terminate episode
     - Reward will have -x, where x is the final distance from ball to target
-    - Reward will have +10/x if the ball is within 0.5 meters of the target
-    - If ball is exactly on target (<= 0.1 meters from target), reward is +100
+    - Reward will have +10/x if the ball is within 1 meter of the target
+    - If ball is <= 0.1 meters from target, reward is +100 and episode terminates
 - Make the model run to ball and pass:
     - Same reward structure as previous task
     - Start robot away from ball in random locations
 - Make the model run in random directions and then pass:
-    - Same reward structure as previous task
+    - Same reward structure as previous task but episode doesn't terminate when ball is close to target
     - Target location will change to a random position every 5-10 seconds (time chosen is random). Ball location doesn't change
+    - Each episode will have 2-10 passes (2-10 passes * 5-10 seconds per pass = 10-100 seconds)
 
 ## Learn shooting
 
 Shooting is essentially complicated passing in 3D with more force.
 
 - Make the model run in random directions and then shoot with no obstacle:
-    - Same reward structure as passing but if the robot makes a goal, the reward is +100 and episode terminates
+    - Same reward structure as passing but if the robot makes a goal
+    - The reward is +100 and episode terminates if the robot scores in the AWAY team
+    - The reward is -100 and episode terminates if the robot scores in the HOME team
 
 - Make the model run in random directions and then shoot with obstacles:
     - Same reward structure as previous task

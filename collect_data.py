@@ -14,8 +14,7 @@ import sai_mujoco  # noqa: F401
 import gymnasium as gym
 import numpy as np
 from booster_control.se3_keyboard import Se3Keyboard
-from booster_control.t1_utils import LowerT1JoyStick
-from imitation_learning.scripts.preprocessor import Preprocessor
+from booster_control.t1_utils import LowerT1JoyStick, Preprocessor
 
 def teleop(env_name: str = "LowerT1KickToTarget-v0", pos_sensitivity:float = 0.1, rot_sensitivity:float = 1.5, dataset_directory = "./data.npz"):
 

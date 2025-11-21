@@ -69,7 +69,7 @@ All inputs will be scaled to between [-1, 1]:
 Robot State (73 components):
 - Joint positions & velocities (45 components)
 - Robot orientation (4 components)
-- Robot angualr velocity (3 components)
+- Robot angular velocity (3 components)
 - Robot linear velocity (3 components)
 - Robot linear acceleration (3 components)
 - Ball position relative to robot (3 components)
@@ -134,7 +134,7 @@ Robot State (73 components):
         0.0,
         0.0,
         0.0
-    ],default observation from info
+    ],
     "player_team": [
         1,
         0
@@ -207,6 +207,6 @@ Robot State (73 components):
 
 # Concerns
 
-- Do we need to teach the model how to dripple (aka run with ball)?
-- What if for pass, the model learns to run with ball towards target and then stop? Is the time penalty enough to stop this behaviour?
+- Do we need to teach the model how to dribble (aka run with ball)?
+- What if for pass, the model learns to run with ball towards target and then stop? Is the time penalty enough to stop this behavior?
 - Will the current training structure make the model learn to always shoot or pass when ball is nearby? In some situations, the model should get closer to the target with the ball first before shooting or passing. Is the location randomization enough for it to learn this behavior?

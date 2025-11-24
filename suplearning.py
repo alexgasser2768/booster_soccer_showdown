@@ -8,9 +8,13 @@ DATA_FILE = "./booster_dataset/jogging.npz" #update for different npz files
 
 # Load the data
 data = np.load(DATA_FILE)
-q_pos =     data["qvel"]
-observations = data["observations"]
-actions_target = data["actions"]
+q_pos = data["qpos"][:, :12]
+q_vel = data["qvel"][:, :12]
+
+observations = np.hstack([q_pos, q_vel])[:-1, :]
+actions = q_vel[1:, :]
+# observations = data["observations"]
+# actions_target = data["actions"]
 
 # --- ADD DEBUGGING LINES HERE ---
 if len(observations) == 0:
@@ -20,7 +24,7 @@ if len(observations) == 0:
 
 # Convert to PyTorch Tensors
 X = torch.tensor(observations, dtype=torch.float32)
-Y = torch.tensor(actions_target, dtype=torch.float32)
+Y = torch.tensor(actions, dtype=torch.float32)
 
 # Split data for validation
 X_train, X_val, Y_train, Y_val = train_test_split(X, Y, test_size=0.1, random_state=42)

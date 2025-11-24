@@ -1,10 +1,10 @@
 - [ ] Become familiar with Mujoco:
-    - [ ] Understand how the environment is set and how to change the robot and ball spawn positions
-    - [ ] Understand how to set reward and how to set success/termination state
-    - [ ] Understand how to detect falls and terminate
+    - [x] Understand how the environment is set and how to change the robot and ball spawn positions
+    - [x] Understand how to set reward and how to set success/termination state
+    - [x] Understand how to detect falls and terminate
     - [ ] Find out if we can remove the goalies and change their speed (to make them slower/faster/static)
     - [ ] Determine how we can differentiate between goals in AWAY and HOME teams
-    - [ ] Understand how to manipulate info and observation data
+    - [x] Understand how to manipulate info and observation data
 - [ ] Implement the RL agent:
     - [ ] Implement the NN architecture
     - [ ] Implement the PPO agent

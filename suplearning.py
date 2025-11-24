@@ -38,6 +38,7 @@ class ActorMLP(nn.Module):
 
         # Match the shared network architecture
         self.shared_net = nn.Sequential(
+            nn.Tanh(),
             nn.Linear(n_states, LAYER_SIZE),
             nn.LeakyReLU(),
             nn.Linear(LAYER_SIZE, LAYER_SIZE),

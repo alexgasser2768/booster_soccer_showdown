@@ -1,5 +1,5 @@
 - [ ] Become familiar with Mujoco:
-    - [x] Understand how the environment is set and how to change the robot and ball spawn positions
+    - [x] Understand how the environment is set and how to change the robot and ball spawn positions ->
     - [x] Understand how to set reward and how to set success/termination state
     - [x] Understand how to detect falls and terminate
     - [ ] Find out if we can remove the goalies and change their speed (to make them slower/faster/static)
@@ -19,3 +19,7 @@
 - [ ] Train model:
     - [ ] Behaviour cloning
     - [ ] Reward based training
+
+- [ ] Running fast training
+    - [ ] Update robot start pos and designate a finish line -> updated in venv/lib/python3.12/site-packages/sai_mujoco/envs/football/v0/penalty_kick.py line 246 from ball_qpos[0] + 5 * self.direction
+    - [ ] Update reward function

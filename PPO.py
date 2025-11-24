@@ -4,8 +4,9 @@ import torch.optim as optim
 import numpy as np
 
 # input and output shapes
-N_STATES = 78   # (28 joints + 3 robot pose + 2 ball pos + 6 target) *2 for velocities of each
-N_ACTIONS = 28  # 28 joint velocities
+# N_STATES = 46   # (12 joints + 3 robot pose + 2 ball pos + 6 target) *2 for velocities of each
+N_STATES = 31   # (12 joints + 3 robot pose + 1 finish line) *2 for velocities of each except finishline
+N_ACTIONS = 12  # 12 joint velocities
 
 # PPO Hyperparameters
 PPO_EPOCHS = 50         # Number of times to update the policy using the collected data
@@ -23,6 +24,7 @@ class ActorCritic(nn.Module):
         super(ActorCritic, self).__init__()
 
         self.shared_net = nn.Sequential(
+            nn.Tanh(), # converts values so that inputs are -1 to 1
             nn.Linear(n_states, 256),
             nn.ReLU(),
             nn.Linear(256, 256),

@@ -12,7 +12,7 @@ q_pos = data["qpos"][:, :12]
 q_vel = data["qvel"][:, :12]
 
 observations = np.hstack([q_pos, q_vel])[:-1, :]
-actions = q_vel[1:, :]
+actions = np.tanh(q_vel[1:, :])
 # observations = data["observations"]
 # actions_target = data["actions"]
 
@@ -34,7 +34,7 @@ print(f"Observation Shape: {X_train.shape} (Input)")
 print(f"Action Target Shape: {Y_train.shape} (Output)")
 
 # these are found from the .npz file collected from collect_data.py
-N_STATES = 51
+N_STATES = 24
 N_ACTIONS = 12
 
 class ActorMLP(nn.Module):
@@ -43,6 +43,7 @@ class ActorMLP(nn.Module):
 
         # Match the shared network architecture
         self.shared_net = nn.Sequential(
+            nn.Tanh(),
             nn.Linear(n_states, 256),
             nn.ReLU(),
             nn.Linear(256, 256),
@@ -62,7 +63,7 @@ model = ActorMLP(N_STATES, N_ACTIONS)
 
 # Hyperparameters
 BATCH_SIZE = 64
-EPOCHS = 1000
+EPOCHS = 200
 LEARNING_RATE = 1e-4
 
 # Setup loss and optimizer

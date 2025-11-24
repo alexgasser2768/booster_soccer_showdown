@@ -66,8 +66,8 @@ All inputs will be scaled to between [-1, 1]:
 - Velocities and acceleration will be scaled by tanh
 - Orientation will be a unit quaternion
 
-Robot State (73 components):
-- Joint positions & velocities (45 components)
+Robot State (52 components):
+- Joint positions & velocities (24 components)
 - Robot orientation (4 components)
 - Robot angular velocity (3 components)
 - Robot linear velocity (3 components)
@@ -85,7 +85,7 @@ Robot State (73 components):
 ## Model Architecture
 
 - Will use Proximal Policy Optimization (PPO)
-- Deep FCN (6 Layers). Each layer is 300 neurons (Max. Neurons: 73 + 6*300 + 12)
+- Deep FCN (6 Layers). Each layer is 256 neurons (Max. Neurons: 52*256 + 6*256 + 12)
 - Leaky ReLU will be used (no information loss from gradient)
 - Output layer is joint velocity from -1 to 1 (tanh)
     - Output will use tanh to normalize

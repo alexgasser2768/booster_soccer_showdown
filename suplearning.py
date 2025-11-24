@@ -3,6 +3,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 from sklearn.model_selection import train_test_split
+from torch.utils.data import TensorDataset, DataLoader
+
 
 DATA_FILE = "./booster_dataset/jogging.npz" #update for different npz files
 
@@ -11,10 +13,8 @@ data = np.load(DATA_FILE)
 q_pos = data["qpos"][:, :12]
 q_vel = data["qvel"][:, :12]
 
-observations = np.hstack([q_pos, q_vel])[:-1, :]
+observations = np.tanh(np.hstack([q_pos, q_vel])[:-1, :])
 actions = np.tanh(q_vel[1:, :])
-# observations = data["observations"]
-# actions_target = data["actions"]
 
 # --- ADD DEBUGGING LINES HERE ---
 if len(observations) == 0:
@@ -22,8 +22,45 @@ if len(observations) == 0:
     print("Check if you successfully recorded data using collect_data.py before pressing ESC.")
     exit()
 
-# Convert to PyTorch Tensors
-X = torch.tensor(observations, dtype=torch.float32)
+# these are found from the .npz file collected from collect_data.py
+N_STATES = 52
+N_ACTIONS = 12
+LAYER_SIZE = 256
+
+# Hyperparameters
+BATCH_SIZE = 64
+EPOCHS = 200
+LEARNING_RATE = 1e-4
+
+class ActorMLP(nn.Module):
+    def __init__(self, n_states, n_actions):
+        super(ActorMLP, self).__init__()
+
+        # Match the shared network architecture
+        self.shared_net = nn.Sequential(
+            nn.Linear(n_states, LAYER_SIZE),
+            nn.LeakyReLU(),
+            nn.Linear(LAYER_SIZE, LAYER_SIZE),
+            nn.LeakyReLU(),
+            nn.Linear(LAYER_SIZE, LAYER_SIZE),
+            nn.LeakyReLU(),
+        )
+
+        self.actor_head = nn.Sequential(
+            nn.Linear(LAYER_SIZE, n_actions),
+            nn.Tanh(),
+        )
+
+    def forward(self, x):
+        features = self.shared_net(x)
+        return self.actor_head(features)
+
+
+# Convert to PyTorch Tensors (Pad the remaining components with zeros since they are not needed right now)
+X = torch.tensor(
+    np.tanh(np.hstack([observations, np.zeros((observations.shape[0], N_STATES - observations.shape[1]))])),
+    dtype=torch.float32
+)
 Y = torch.tensor(actions, dtype=torch.float32)
 
 # Split data for validation
@@ -33,49 +70,15 @@ print(f"Total Samples: {len(X)}")
 print(f"Observation Shape: {X_train.shape} (Input)")
 print(f"Action Target Shape: {Y_train.shape} (Output)")
 
-# these are found from the .npz file collected from collect_data.py
-N_STATES = 24
-N_ACTIONS = 12
-
-class ActorMLP(nn.Module):
-    def __init__(self, n_states, n_actions):
-        super(ActorMLP, self).__init__()
-
-        # Match the shared network architecture
-        self.shared_net = nn.Sequential(
-            nn.Tanh(),
-            nn.Linear(n_states, 256),
-            nn.ReLU(),
-            nn.Linear(256, 256),
-            nn.ReLU()
-        )
-
-        self.actor_head = nn.Sequential(
-            nn.Linear(256, n_actions),
-            nn.Tanh()
-        )
-
-    def forward(self, x):
-        features = self.shared_net(x)
-        return self.actor_head(features)
-
 model = ActorMLP(N_STATES, N_ACTIONS)
-
-# Hyperparameters
-BATCH_SIZE = 64
-EPOCHS = 200
-LEARNING_RATE = 1e-4
 
 # Setup loss and optimizer
 criterion = nn.MSELoss() # Mean Squared Error is standard for regression tasks like this
 optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
 # Create DataLoader for efficient batching
-from torch.utils.data import TensorDataset, DataLoader
-
 train_dataset = TensorDataset(X_train, Y_train)
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-
 
 # --- Training Loop ---
 print("Starting Imitation Learning Training...")
@@ -101,4 +104,4 @@ for epoch in range(EPOCHS):
 SAVE_PATH = "./data/il_actor_seed_weights.pt"
 # Save ONLY the state dictionary of the policy network
 torch.save(model.state_dict(), SAVE_PATH)
-print(f"✅ Imitation Policy weights saved to {SAVE_PATH}")
+print(f"Imitation Policy weights saved to {SAVE_PATH}")

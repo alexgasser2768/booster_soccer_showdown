@@ -14,9 +14,10 @@ import sai_mujoco  # noqa: F401
 import gymnasium as gym
 import numpy as np
 from booster_control.se3_keyboard import Se3Keyboard
-from booster_control.t1_utils import LowerT1JoyStick, Preprocessor
+from booster_control.t1_utils import LowerT1JoyStick
+from imitation_learning.scripts.preprocessor import Preprocessor
 
-def teleop(env_name: str = "LowerT1KickToTarget-v0", pos_sensitivity:float = 0.1, rot_sensitivity:float = 1.5, dataset_directory = "./data.npz"):
+def teleop(env_name: str = "LowerT1KickToTarget-v0", pos_sensitivity:float = 0.1, rot_sensitivity:float = 1.5, dataset_directory = "./data/data.npz"):
 
     env = gym.make(env_name, render_mode="human")
     lower_t1_robot = LowerT1JoyStick(env.unwrapped)
@@ -36,6 +37,14 @@ def teleop(env_name: str = "LowerT1KickToTarget-v0", pos_sensitivity:float = 0.1
         "observations" : [],
         "actions" : []
     }
+
+    ###### Saves info gathered
+    # observation, info = env.reset()
+    # with open('info.json', 'w') as f:
+    #     json.dump(
+    #         {k: v.tolist() if isinstance(v, np.ndarray) else v for k, v in info.items()},
+    #         f
+    #     )
 
     # Main teleoperation loop
     episode_count = 0
@@ -57,17 +66,23 @@ def teleop(env_name: str = "LowerT1KickToTarget-v0", pos_sensitivity:float = 0.1
 
             preprocessed_observation = preprocessor.modify_state(observation.copy(), info.copy())
             # Get keyboard input and apply it directly to the environment
-            if keyboard_controller.should_quit():
-                print("\n[INFO] ESC pressed — exiting teleop.")
-                np.savez(dataset_directory, observations=dataset["observations"], actions=dataset["actions"])
-                env.close()
-                return
-
             command = keyboard_controller.advance()
             ctrl, actions = lower_t1_robot.get_actions(command, observation, info)
 
             episode["observations"].append(preprocessed_observation)
             episode["actions"].append(actions)
+
+            if keyboard_controller.should_quit():
+                print("\n[INFO] ESC pressed — exiting teleop.")
+                dataset["observations"].extend(episode["observations"])
+                dataset["actions"].extend(episode["actions"])
+                directory = os.path.dirname(dataset_directory)
+                print(f'length of observations: {len(dataset["observations"])}')
+                if os.path.exists(directory):
+                    os.makedirs(directory, exist_ok=True)
+                np.savez(dataset_directory, observations=dataset["observations"], actions=dataset["actions"])
+                env.close()
+                return
 
             observation, reward, terminated, truncated, info = env.step(ctrl)
 
@@ -87,9 +102,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser("Teleoperate T1 robot in a gymnasium environment.")
     parser.add_argument("--env", type=str, default="LowerT1GoaliePenaltyKick-v0", help="The environment to teleoperate.")
-    parser.add_argument("--pos_sensitivity", type=float, default=0.1, help="SE3 Keyboard position sensitivity.")
-    parser.add_argument("--rot_sensitivity", type=float, default=0.5, help="SE3 Keyboard rotation sensitivity.")
-    parser.add_argument("--data_set_directory", type=str, default="./data/data2.npz", help="SE3 Keyboard rotation sensitivity.")
+    parser.add_argument("--pos_sensitivity", type=float, default=1.5, help="SE3 Keyboard position sensitivity.")
+    parser.add_argument("--rot_sensitivity", type=float, default=7.5, help="SE3 Keyboard rotation sensitivity.")
+    parser.add_argument("--data_set_directory", type=str, default="./data/test.npz", help="SE3 Keyboard rotation sensitivity.")
 
     args = parser.parse_args()
 

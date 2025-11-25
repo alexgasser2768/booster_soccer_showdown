@@ -8,7 +8,7 @@ import sys
 repo_root = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".."))
 sys.path.append(repo_root)
 
-import time
+import yaml
 import argparse
 import sai_mujoco  # noqa: F401
 import gymnasium as gym
@@ -21,8 +21,12 @@ import torch
 from agent import Agent
 
 
-N_STATES = 52
-N_ACTIONS = 12
+with open("./config.yaml", "r") as f:
+    config = yaml.safe_load(f)
+
+# input and output shapes
+N_STATES = config['model']['states']
+N_ACTIONS = config['model']['actions']
 
 
 def create_input_vector(info: dict, joint_obs: np.ndarray) -> np.ndarray:

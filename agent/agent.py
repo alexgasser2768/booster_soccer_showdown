@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+import time
 from typing import Tuple
 
 
@@ -67,8 +68,9 @@ class Agent(nn.Module):
             torch.exp(self.log_std.expand_as(mu)), \
             self.critic_head(features)
 
-    def saveWeights(self, path):
-        torch.save(self.state_dict(), path)
+    def saveWeights(self, directory, prefix = ""):
+        name = f"{prefix}-{time.time_ns()}.pt"
+        torch.save(self.state_dict(), f"{directory}/{name}")
 
     def loadWeights(self, path):
         self.load_state_dict(torch.load(path))

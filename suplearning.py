@@ -1,3 +1,4 @@
+import yaml
 import numpy as np
 from sklearn.model_selection import train_test_split
 import torch
@@ -7,15 +8,18 @@ from torch.utils.data import TensorDataset, DataLoader
 from agent import Agent
 
 
-# Hyperparameters
-N_STATES = 52
-N_ACTIONS = 12
+with open("./config.yaml", "r") as f:
+    config = yaml.safe_load(f)
 
-BATCH_SIZE = 64
-EPOCHS = 400
-LEARNING_RATE = 1e-4
+# input and output shapes
+N_STATES = config['model']['states']
+N_ACTIONS = config['model']['actions']
 
-DATA_FILE = "./booster_dataset/collected.npz" #update for different npz files
+DATA_FILE = config['behavior_cloning']['dataset_path']
+BATCH_SIZE = config['behavior_cloning']['batch_size']
+EPOCHS = config['behavior_cloning']['epochs']
+LEARNING_RATE = config['behavior_cloning']['learning_rate']
+
 
 # Load the data
 data = np.load(DATA_FILE)
@@ -73,7 +77,4 @@ for epoch in range(EPOCHS):
     print(f"Epoch {epoch+1}/{EPOCHS}, Loss: {avg_loss:.6f}")
 
 # --- Save Weights ---
-SAVE_PATH = "./data/il_actor_seed_weights.pt"
-# Save ONLY the state dictionary of the policy network
-torch.save(model.state_dict(), SAVE_PATH)
-print(f"Imitation Policy weights saved to {SAVE_PATH}")
+model.saveWeights(config['model']['weights_directory'], prefix=config['model']['weights_prefix'])

@@ -1,3 +1,4 @@
+import yaml
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -5,19 +6,22 @@ import numpy as np
 
 from agent import Agent
 
+with open("./config.yaml", "r") as f:
+    config = yaml.safe_load(f)
+
 
 # input and output shapes
-# N_STATES = 46   # (12 joints + 3 robot pose + 2 ball pos + 6 target) *2 for velocities of each
-N_STATES = 31   # (12 joints + 3 robot pose + 1 finish line) *2 for velocities of each except finishline
-N_ACTIONS = 12  # 12 joint velocities
+N_STATES = config['model']['states']
+N_ACTIONS = config['model']['actions']
 
 # PPO Hyperparameters
-PPO_EPOCHS = 50         # Number of times to update the policy using the collected data
-MINIBATCH_SIZE = 64     # Size of mini-batch for gradient descent
-CLIP_EPSILON = 0.2      # Clipping parameter (epsilon)
-GAMMA = 0.99            # Discount factor
-GAE_LAMBDA = 0.95       # GAE factor
-LR = 3e-4               # Learning rate
+PPO_EPOCHS = config['ppo']['epochs']         # Number of times to update the policy using the collected data
+MINIBATCH_SIZE = config['ppo']['batch_size']     # Size of mini-batch for gradient descent
+CLIP_EPSILON = config['ppo']['clip_epsilon']      # Clipping parameter (epsilon)
+GAMMA = config['ppo']['gamma']            # Discount factor
+GAE_LAMBDA = config['ppo']['gae_lambda']       # GAE factor
+LR = config['ppo']['learning_rate']               # Learning rate
+
 
 class PPOAgent:
     """

@@ -12,18 +12,15 @@ N_STATES = 52
 N_ACTIONS = 12
 
 BATCH_SIZE = 64
-EPOCHS = 200
+EPOCHS = 400
 LEARNING_RATE = 1e-4
 
-DATA_FILE = "./booster_dataset/jogging.npz" #update for different npz files
+DATA_FILE = "./booster_dataset/collected.npz" #update for different npz files
 
 # Load the data
 data = np.load(DATA_FILE)
-q_pos = data["qpos"][:, :12]
-q_vel = data["qvel"][:, :12]
-
-observations = np.tanh(np.hstack([q_pos, q_vel])[:-1, :])
-actions = np.tanh(q_vel[1:, :])
+observations = data["observations"][:, :24]
+actions = data["actions"]
 
 # --- ADD DEBUGGING LINES HERE ---
 if len(observations) == 0:
@@ -62,7 +59,7 @@ for epoch in range(EPOCHS):
     for batch_X, batch_Y in train_loader:
 
         # Forward pass
-        predicted_actions, _, __ = model(batch_X)
+        predicted_actions = model(batch_X)[0]
         loss = criterion(predicted_actions, batch_Y)
 
         # Backward and optimize

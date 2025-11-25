@@ -24,7 +24,7 @@ class Agent(nn.Module):
 
         self.actor_head = nn.Sequential(
             nn.Linear(LAYER_SIZE, n_actions),
-            nn.Tanh(),
+            # nn.Tanh(),
         )
 
         self.critic_head = nn.Linear(LAYER_SIZE, 1)
@@ -50,26 +50,22 @@ class Agent(nn.Module):
         features = self.shared_net(x)
         mu = self.actor_head(features)
 
-        # Mean of Gaussian distribution, Standard deviation, State Value
-        return mu, \
-            torch.exp(self.log_std.expand_as(mu)), \
-            self.critic_head(features)
-    
-    def getActions(self, obs) -> Tuple[torch.Tensor, torch.Tensor]:
-        N = obs.shape[0]  # Batch size
-
-        actions = self(obs)[0]  # (N,12)
-        targets = self.default_dof_pos.expand(N, -1) + actions
-
         # PD control + Clamp
-        qpos = obs[:, :12]
-        qvel = obs[:, 12:24]
+        qpos = x[:, :12]
+        qvel = x[:, 12:24]
 
+        targets = self.default_dof_pos.expand(x.shape[0], -1) + mu
         ctrl = self.dof_stiffness * (targets - qpos) - self.dof_damping * qvel
-        return torch.minimum(
+        ctrl = torch.minimum(
             torch.maximum(ctrl, self.ctrl_min.expand_as(ctrl)),
             self.ctrl_max.expand_as(ctrl)
-        ), actions
+        )
+
+        # Control Output, Mean of Gaussian distribution, Standard deviation, State Value
+        return ctrl, \
+            mu, \
+            torch.exp(self.log_std.expand_as(mu)), \
+            self.critic_head(features)
 
     def saveWeights(self, path):
         torch.save(self.state_dict(), path)

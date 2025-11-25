@@ -146,11 +146,11 @@ def teleop(env_name: str = "LowerT1KickToTarget-v0", pos_sensitivity:float = 0.1
                 np.tanh(np.hstack([observation[:24], np.zeros((N_STATES - 24, ))])).reshape(1, -1),
                 dtype=torch.float32
             )
-            ctrl, actions = agent.getActions(model_input)
+            ctrl = agent(model_input)[0]
             ctrl = ctrl.detach().numpy().reshape((12, ))
 
             episode["observations"].append(preprocessed_observation)
-            episode["actions"].append(actions)
+            episode["actions"].append(ctrl)
 
             if keyboard_controller.should_quit():
                 print("\n[INFO] ESC pressed — exiting teleop.")

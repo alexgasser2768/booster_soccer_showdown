@@ -94,7 +94,7 @@ Robot State (52 components):
 ## Sample data from environment
 
 ```json
-{
+info = {
     "length": 10.97,
     "width": 6.87,
     "goal_width": 1.6,

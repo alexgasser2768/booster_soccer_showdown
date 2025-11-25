@@ -3,6 +3,9 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 
+from agent import Agent
+
+
 # input and output shapes
 # N_STATES = 46   # (12 joints + 3 robot pose + 2 ball pos + 6 target) *2 for velocities of each
 N_STATES = 31   # (12 joints + 3 robot pose + 1 finish line) *2 for velocities of each except finishline
@@ -16,53 +19,12 @@ GAMMA = 0.99            # Discount factor
 GAE_LAMBDA = 0.95       # GAE factor
 LR = 3e-4               # Learning rate
 
-class ActorCritic(nn.Module):
-    """
-    Defines the shared backbone and separate heads for the Actor and Critic networks.
-    """
-    def __init__(self, n_states, n_actions):
-        super(ActorCritic, self).__init__()
-
-        self.shared_net = nn.Sequential(
-            nn.Tanh(), # converts values so that inputs are -1 to 1
-            nn.Linear(n_states, 256),
-            nn.ReLU(),
-            nn.Linear(256, 256),
-            nn.ReLU()
-        )
-
-        self.actor_head = nn.Sequential(
-            nn.Linear(256, n_actions),
-            nn.Tanh()  # Use Tanh to constrain output between [-1, 1], then scale later
-        )
-
-        self.critic_head = nn.Linear(256, 1)
-
-        # Log Standard Deviation (for continuous actions)
-        # This is a parameter, not a layer output, and is learned directly.
-        # Initialize to a small value (e.g., log(0.1) ~ -2.3)
-        self.log_std = nn.Parameter(torch.zeros(1, n_actions) - 2.3)
-
-    def forward(self, x):
-        features = self.shared_net(x)
-
-        # Actor output: Mean of the Gaussian distribution
-        mu = self.actor_head(features)
-
-        # Critic output: State Value
-        value = self.critic_head(features)
-
-        # Standard deviation (exp is used since log_std is what we learn)
-        std = torch.exp(self.log_std.expand_as(mu))
-
-        return mu, std, value
-
 class PPOAgent:
     """
     The main PPO Agent class responsible for interaction and learning.
     """
     def __init__(self):
-        self.network = ActorCritic(N_STATES, N_ACTIONS)
+        self.network = Agent(N_STATES, N_ACTIONS)
         self.optimizer = optim.Adam(self.network.parameters(), lr=LR)
         self.clip_epsilon = CLIP_EPSILON
         self.gamma = GAMMA

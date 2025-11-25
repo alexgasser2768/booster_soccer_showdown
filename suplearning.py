@@ -1,10 +1,19 @@
-import os
 import numpy as np
+from sklearn.model_selection import train_test_split
 import torch
 import torch.nn as nn
-from sklearn.model_selection import train_test_split
 from torch.utils.data import TensorDataset, DataLoader
 
+from agent import Agent
+
+
+# Hyperparameters
+N_STATES = 52
+N_ACTIONS = 12
+
+BATCH_SIZE = 64
+EPOCHS = 200
+LEARNING_RATE = 1e-4
 
 DATA_FILE = "./booster_dataset/jogging.npz" #update for different npz files
 
@@ -22,41 +31,6 @@ if len(observations) == 0:
     print("Check if you successfully recorded data using collect_data.py before pressing ESC.")
     exit()
 
-# these are found from the .npz file collected from collect_data.py
-N_STATES = 52
-N_ACTIONS = 12
-LAYER_SIZE = 256
-
-# Hyperparameters
-BATCH_SIZE = 64
-EPOCHS = 200
-LEARNING_RATE = 1e-4
-
-class ActorMLP(nn.Module):
-    def __init__(self, n_states, n_actions):
-        super(ActorMLP, self).__init__()
-
-        # Match the shared network architecture
-        self.shared_net = nn.Sequential(
-            nn.Tanh(),
-            nn.Linear(n_states, LAYER_SIZE),
-            nn.LeakyReLU(),
-            nn.Linear(LAYER_SIZE, LAYER_SIZE),
-            nn.LeakyReLU(),
-            nn.Linear(LAYER_SIZE, LAYER_SIZE),
-            nn.LeakyReLU(),
-        )
-
-        self.actor_head = nn.Sequential(
-            nn.Linear(LAYER_SIZE, n_actions),
-            nn.Tanh(),
-        )
-
-    def forward(self, x):
-        features = self.shared_net(x)
-        return self.actor_head(features)
-
-
 # Convert to PyTorch Tensors (Pad the remaining components with zeros since they are not needed right now)
 X = torch.tensor(
     np.tanh(np.hstack([observations, np.zeros((observations.shape[0], N_STATES - observations.shape[1]))])),
@@ -71,7 +45,7 @@ print(f"Total Samples: {len(X)}")
 print(f"Observation Shape: {X_train.shape} (Input)")
 print(f"Action Target Shape: {Y_train.shape} (Output)")
 
-model = ActorMLP(N_STATES, N_ACTIONS)
+model = Agent(N_STATES, N_ACTIONS)
 
 # Setup loss and optimizer
 criterion = nn.MSELoss() # Mean Squared Error is standard for regression tasks like this
@@ -88,7 +62,7 @@ for epoch in range(EPOCHS):
     for batch_X, batch_Y in train_loader:
 
         # Forward pass
-        predicted_actions = model(batch_X)
+        predicted_actions, _, __ = model(batch_X)
         loss = criterion(predicted_actions, batch_Y)
 
         # Backward and optimize

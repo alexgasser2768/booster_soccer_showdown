@@ -6,7 +6,7 @@
     - [ ] Determine how we can differentiate between goals in AWAY and HOME teams
     - [x] Understand how to manipulate info and observation data
 - [ ] Implement the RL agent:
-    - [ ] Implement the NN architecture
+    - [x] Implement the NN architecture
     - [ ] Implement the PPO agent
     - [ ] Implement a WandB interface
     - [ ] Test the agent with regular environment
@@ -17,7 +17,7 @@
     - [ ] Implement the reward environment for learning passing
     - [ ] Implement the reward environment for learning shooting
 - [ ] Train model:
-    - [ ] Behaviour cloning
+    - [x] Behaviour cloning
     - [ ] Reward based training
 
 - [ ] Running fast training

@@ -91,122 +91,162 @@ Robot State (52 components):
     - Output will use tanh to normalize
     - The function `get_torque` in the `booster_control/t1_utils.py` file will be used to convert the normalized output into control signals
 
-## Sample data from environment
+## Sample data from the different environments
 
-```json
+### LowerT1KickToTarget-v0
+
+```python
 info = {
-    "length": 10.97,
-    "width": 6.87,
-    "goal_width": 1.6,
-    "goal_height": 1.9,
-    "goal_depth": 1.6,
-    "goal_team_0_rel_robot": [  // Position of HOME goal relative to robot
-        -4.200000000000001,
-        0.0,
-        -0.7
-    ],
-    "goal_team_1_rel_robot": [  // Position of AWAY goal relative to robot
-        17.740000000000002,
-        0.0,
-        -0.7
-    ],
-    "goal_team_0_rel_ball": [  // Position of HOME goal relative to ball
-        -2.200000000000001,
-        0.0,
-        0.0
-    ],
-    "goal_team_1_rel_ball": [  // Position of AWAY goal relative to ball
-        19.740000000000002,
-        0.0,
-        0.0
-    ],
-    "ball_xpos_rel_robot": [  // Position of ball relative to robot
-        -2.0,
-        0.0,
-        -0.7
-    ],
-    "ball_velp_rel_robot": [  // Linear velocity of ball relative to robot
-        0.0,
-        0.0,
-        0.0
-    ],
-    "ball_velr_rel_robot": [  // Angular velocity of ball relative to robot
-        0.0,
-        0.0,
-        0.0
-    ],
-    "player_team": [
-        1,
-        0
-    ],
-    "robot_accelerometer": [  // Acceleration of robot
-        -1.3136856325115598e-16,
-        4.3332978045500977e-17,
-        -2.0261972540059053e-15
-    ],
-    "robot_gyro": [  // Angular velocity of robot
-        0.0,
-        0.0,
-        0.0
-    ],
-    "robot_velocimeter": [  // Linear velocity of robot
-        0.0,
-        0.0,
-        0.0
-    ],
-    "robot_quat": [  // Orientation of robot
-        0.0,
-        0.0,
-        0.9999997019767761,
-        0.0007963267271406949
-    ],
-    "goalkeeper_team_0_xpos_rel_robot": [  // Position of HOME goalkeeper relative to robot
-        -4.200000000000001,
-        0.0,
-        -0.49999999999999994
-    ],
-    "goalkeeper_team_0_velp_rel_robot": [  // Linear velocity of HOME goalkeeper relative to robot
-        0.0,
-        0.0,
-        0.0
-    ],
-    "goalkeeper_team_1_xpos_rel_robot": [  // Position of AWAY goalkeeper relative to robot
-        17.740000000000002,
-        0.0,
-        -0.49999999999999994
-    ],
-    "goalkeeper_team_1_velp_rel_robot": [  // Linear velocity of AWAY goalkeeper relative to robot
-        0.0,
-        0.0,
-        0.0
-    ],
-    "target_xpos_rel_robot": [  // Position of target relative to robot
-        0.0,
-        0.0,
-        0.0
-    ],
-    "target_velp_rel_robot": [  // Linear velocity of target relative to robot
-        0.0,
-        0.0,
-        0.0
-    ],
-    "defender_xpos": [
-        -6.77,
-        0.0,
-        0.7,
-        -6.77,
-        0.0,
-        0.7,
-        -6.77,
-        0.0,
-        0.7
-    ],
-    "success": false
+    'length': 10.97,
+    'width': 6.87,
+    'goal_width': 1.6,
+    'goal_height': 1.9,
+    'goal_depth': 1.6,
+    'goal_team_0_rel_robot': array([-5.76995107,  4.03897027, -0.7       ]),
+    'goal_team_1_rel_robot': array([16.17004893,  4.03897027, -0.7       ]),
+    'goal_team_0_rel_ball': array([-6.54378036,  3.43792333,  0.        ]),
+    'goal_team_1_rel_ball': array([15.39621964,  3.43792333,  0.        ]),
+    'ball_xpos_rel_robot': array([ 0.7738293 ,  0.60104694, -0.7       ]),
+    'ball_velp_rel_robot': array([0.07996708, 0.05742423, 0.02280047]),
+    'ball_velr_rel_robot': array([ 0.48831477, -0.55803543,  0.13538543]),
+    'player_team': array([1, 0]),
+    'robot_accelerometer': array([-49.190372 ,   1.8504004,  23.964003 ], dtype=float32),
+    'robot_gyro': array([0., 0., 0.], dtype=float32),
+    'robot_velocimeter': array([0., 0., 0.], dtype=float32),
+    'robot_quat': array([0.        , 0.        , 0.32422388, 0.94598037], dtype=float32),
+    'goalkeeper_team_0_xpos_rel_robot': array([0., 0., 0.]),
+    'goalkeeper_team_0_velp_rel_robot': array([0., 0., 0.]),
+    'goalkeeper_team_1_xpos_rel_robot': array([0., 0., 0.]),
+    'goalkeeper_team_1_velp_rel_robot': array([0., 0., 0.]),
+    'target_xpos_rel_robot': array([12.44927069,  2.228258  , -0.699     ]),
+    'target_velp_rel_robot': array([ 0.0799671 ,  0.05742587, -0.028308  ]),
+    'defender_xpos': array([-5.20004893, -4.03897027,  0.7       , -5.20004893, -4.03897027,  0.7       , -5.20004893, -4.03897027,  0.7       ]), 'success': False,
+    'reward_terms': {
+        'offside': np.False_,
+        'success': False,
+        'distance': np.float64(7.592963328178988e-06)
+    }
 }
 ```
 
-# Concerns
+### LowerT1GoaliePenaltyKick-v0
 
-- Do we need to teach the model how to dribble (aka run with ball)?
-- What if for pass, the model learns to run with ball towards target and then stop? Is the time penalty enough to stop this behavior?
-- Will the current training structure make the model learn to always shoot or pass when ball is nearby? In some situations, the model should get closer to the target with the ball first before shooting or passing. Is the location randomization enough for it to learn this behavior?
+```python
+info = {
+    'length': 10.97,
+    'width': 6.87,
+    'goal_width': 1.6,
+    'goal_height': 1.9,
+    'goal_depth': 1.6,
+    'goal_team_0_rel_robot': array([-4.2,  0. , -0.7]),
+    'goal_team_1_rel_robot': array([17.74,  0.  , -0.7 ]),
+    'goal_team_0_rel_ball': array([-2.2,  0. ,  0. ]),
+    'goal_team_1_rel_ball': array([19.74,  0.  ,  0.  ]),
+    'ball_xpos_rel_robot': array([-2. ,  0. , -0.7]),
+    'ball_velp_rel_robot': array([-0.09953718,  0.00333679,  0.02199158]),
+    'ball_velr_rel_robot': array([-0.04522436,  0.75377242,  0.13256413]),
+    'player_team': array(),
+    'robot_accelerometer': array([-49.769882 ,   1.5891316,  24.37023  ], dtype=float32),
+    'robot_gyro': array([0., 0., 0.], dtype=float32),
+    'robot_velocimeter': array([0., 0., 0.], dtype=float32),
+    'robot_quat': array([0.000000e+00, 0.000000e+00, 9.999997e-01, 7.963267e-04], dtype=float32),
+    'goalkeeper_team_0_xpos_rel_robot': array([-4.2,  0. , -0.5]),
+    'goalkeeper_team_0_velp_rel_robot': array([-0.09953458,  1.88829238, -0.02912046]),
+    'goalkeeper_team_1_xpos_rel_robot': array([17.74,  0.  , -0.5 ]),
+    'goalkeeper_team_1_velp_rel_robot': array([-0.09953458,  1.88829238, -0.02912046]),
+    'target_xpos_rel_robot': array([0., 0., 0.]),
+    'target_velp_rel_robot': array([0., 0., 0.]),
+    'defender_xpos': array([-6.77,  0.  ,  0.7 , -6.77,  0.  ,  0.7 , -6.77,  0.  ,  0.7 ]),
+    'success': False,
+    'reward_terms': {
+        'robot_distance_ball': np.float32(0.028464139),
+        'ball_vel_twd_goal': np.float64(2.604932644723651e-06),
+        'offside': np.False_,
+        'ball_hits': np.float64(0.0),
+        'robot_fallen': False,
+        'goal_scored': False,
+        'ball_blocked': False
+    }
+}
+```
+
+### LowerT1ObstaclePenaltyKick-v0
+
+```python
+info = {
+    'length': 10.97,
+    'width': 6.87,
+    'goal_width': 1.6,
+    'goal_height': 1.9,
+    'goal_depth': 1.6,
+    'goal_team_0_rel_robot': array([-4.20080304e+00,  3.90488002e-05, -7.00155275e-01]),
+    'goal_team_1_rel_robot': array([ 1.77391970e+01,  3.90488002e-05, -7.00155275e-01]),
+    'goal_team_0_rel_ball': array([-2.19999997e+00,  1.37458607e-19, -5.28282194e-04]),
+    'goal_team_1_rel_ball': array([ 1.97400000e+01,  1.37458607e-19, -5.28282194e-04]),
+    'ball_xpos_rel_robot': array([-2.00080306e+00,  3.90488002e-05, -6.99626993e-01]),
+    'ball_velp_rel_robot': array([-0.1888286 ,  0.01303736,  0.13430434]),
+    'ball_velr_rel_robot': array([-0.06376551,  1.47738702,  0.34152387]),
+    'player_team': array([1, 0]),
+    'robot_accelerometer': array([-11.524847 ,   1.3702672,   4.5982413], dtype=float32),
+    'robot_gyro': array([-0.05581531,  1.287113  , -0.26800087], dtype=float32),
+    'robot_velocimeter': array([-0.16599128,  0.00976243,  0.0200204 ], dtype=float32),
+    'robot_quat': array([-3.0923956e-03, -1.5803096e-04,  9.9999422e-01,  1.3893220e-03], dtype=float32),
+    'goalkeeper_team_0_xpos_rel_robot': array([0., 0., 0.]),
+    'goalkeeper_team_0_velp_rel_robot': array([0., 0., 0.]),
+    'goalkeeper_team_1_xpos_rel_robot': array([0., 0., 0.]),
+    'goalkeeper_team_1_velp_rel_robot': array([0., 0., 0.]),
+    'target_xpos_rel_robot': array([-4.20080304,  0.39003905,  0.53795812]),
+    'target_velp_rel_robot': array([-0.18882119,  0.01303736, -0.01076135]),
+    'defender_xpos': array([-10.97,  -0.39,   0.6 , -10.97,  -1.17,   0.6 , -10.97,   1.17, 0.6 ]),
+    'success': False,
+    'reward_terms': {
+        'robot_distance_ball': np.float32(0.028428555),
+        'ball_vel_twd_goal': np.float64(7.414924496410714e-06),
+        'offside': np.False_,
+        'ball_hits': np.float64(0.0),
+        'robot_fallen': False,
+        'goal_scored': False,
+        'ball_blocked': False
+    }
+}
+```
+
+### LowerT1PenaltyKick-v0
+
+```python
+info = {
+    'length': 10.97,
+    'width': 6.87,
+    'goal_width': 1.6,
+    'goal_height': 1.9,
+    'goal_depth': 1.6,
+    'goal_team_0_rel_robot': array([-4.2,  0. , -0.7]),
+    'goal_team_1_rel_robot': array([17.74,  0.  , -0.7 ]),
+    'goal_team_0_rel_ball': array([-2.2,  0. ,  0. ]),
+    'goal_team_1_rel_ball': array([19.74,  0.  ,  0.  ]),
+    'ball_xpos_rel_robot': array([-2. ,  0. , -0.7]),
+    'ball_velp_rel_robot': array([-0.09953718,  0.00333679,  0.02199158]),
+    'ball_velr_rel_robot': array([-0.04522436,  0.75377242,  0.13256413]),
+    'player_team': array(),
+    'robot_accelerometer': array([-49.769882 ,   1.5891316,  24.37023  ], dtype=float32),
+    'robot_gyro': array([0., 0., 0.], dtype=float32),
+    'robot_velocimeter': array([0., 0., 0.], dtype=float32),
+    'robot_quat': array([0.000000e+00, 0.000000e+00, 9.999997e-01, 7.963267e-04], dtype=float32),
+    'goalkeeper_team_0_xpos_rel_robot': array([0., 0., 0.]),
+    'goalkeeper_team_0_velp_rel_robot': array([0., 0., 0.]),
+    'goalkeeper_team_1_xpos_rel_robot': array([0., 0., 0.]),
+    'goalkeeper_team_1_velp_rel_robot': array([0., 0., 0.]),
+    'target_xpos_rel_robot': array([0., 0., 0.]),
+    'target_velp_rel_robot': array([0., 0., 0.]),
+    'defender_xpos': array([-6.77,  0.  ,  0.7 , -6.77,  0.  ,  0.7 , -6.77,  0.  ,  0.7 ]),
+    'success': False,
+    'reward_terms': {
+        'robot_distance_ball': np.float32(0.028464139),
+        'ball_vel_twd_goal': np.float64(2.604932644723651e-06),
+        'offside': np.False_,
+        'ball_hits': np.float64(0.0),
+        'robot_fallen': False,
+        'goal_scored': False
+    }
+}
+```

@@ -6,9 +6,7 @@ from ..booster_control.t1_utils import LowerT1JoyStick
 from .simulation import SimulationEnvironment
 
 
-def teleop(pos_sensitivity: float, rot_sensitivity: float) -> Dict[str, list]:
-    simulation = SimulationEnvironment()
-
+def teleop(simulation: SimulationEnvironment, pos_sensitivity: float, rot_sensitivity: float) -> Dict[str, list]:
     # Initialize the T1 SE3 keyboard controller with the viewer
     lower_t1_robot = LowerT1JoyStick(simulation.env.unwrapped)
     keyboard_controller = Se3Keyboard(renderer=simulation.env.unwrapped.mujoco_renderer, pos_sensitivity=pos_sensitivity, rot_sensitivity=rot_sensitivity)

@@ -1,6 +1,7 @@
 import yaml, time, logging, os
 import numpy as np
 
+from src.utils.simulation import SimulationEnvironment
 from src.utils.teleop import teleop
 from src.utils.visualize_model import visualize
 from src.learning.behavior_cloning import behavior_cloning
@@ -25,12 +26,22 @@ if __name__ == "__main__":
     n_states = config['model']['states']
     n_actions = config['model']['actions']
 
+    env_name = config['environment']['name']
+    env_headless = config['environment']['headless']
+    env_max_episode_steps = config['environment']['max_episode_steps']
+
+    simulation = SimulationEnvironment(env_name=env_name, headless=env_headless, max_episodes=env_max_episode_steps)
+
     if config['teleop']['enabled']:
         file_prefix = config['teleop']['file_prefix']
         pos_sensitivity = config['teleop']['position_sensitivity']
         rot_sensitivity = config['teleop']['rotation_sensitivity']
 
-        dataset = teleop(pos_sensitivity=pos_sensitivity, rot_sensitivity=rot_sensitivity)
+        dataset = teleop(
+            simulation=simulation,
+            pos_sensitivity=pos_sensitivity,
+            rot_sensitivity=rot_sensitivity
+        )
 
         # Save the collected dataset
         dataset_path = f"{dataset_directory}/{file_prefix}-{time.time()}.npz"
@@ -47,6 +58,7 @@ if __name__ == "__main__":
         weight_path = f"{weights_directory}/{config['visualize']['weight_file']}"
 
         visualize(
+            simulation=simulation,
             weight_path=weight_path,
             n_states=n_states,
             n_actions=n_actions

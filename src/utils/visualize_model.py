@@ -5,9 +5,7 @@ from .utils import create_input_vector
 from .simulation import SimulationEnvironment
 
 
-def visualize(weight_path: str, n_states: int, n_actions: int):
-    simulation = SimulationEnvironment()
-
+def visualize(simulation: SimulationEnvironment, weight_path: str, n_states: int, n_actions: int):
     agent = Agent(n_states=n_states, n_actions=n_actions)
     agent.loadWeights(weight_path)
 

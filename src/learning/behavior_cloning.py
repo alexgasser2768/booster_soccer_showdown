@@ -7,14 +7,16 @@ import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
 
 from .agent import Agent
+from ..utils.utils import create_input_vector
 
 logger = logging.getLogger(__name__)
 
 
 def behavior_cloning(data_file: str, batch_size: int, epochs: int, learning_rate: float, n_states: int, n_actions: int, model_weights_directory: str, model_weights_prefix: str):
     # Load the data
-    data = np.load(data_file)
+    data = np.load(data_file, allow_pickle=True)
     observations = data["observations"][:, :24]
+    info = data["infos"]
     actions = data["actions"]
 
     if len(observations) == 0 or len(actions) == 0:
@@ -23,7 +25,7 @@ def behavior_cloning(data_file: str, batch_size: int, epochs: int, learning_rate
 
     # Convert to PyTorch Tensors (Pad the remaining components with zeros since they are not needed right now)
     X = torch.tensor(
-        np.tanh(np.hstack([observations, np.zeros((observations.shape[0], n_states - observations.shape[1]))])),
+        np.array([create_input_vector(info[i], observations[i]) for i in range(len(observations))]),
         dtype=torch.float32
     )
     Y = torch.tensor(actions, dtype=torch.float32)

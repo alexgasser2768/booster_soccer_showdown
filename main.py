@@ -1,4 +1,4 @@
-import yaml, time, logging
+import yaml, time, logging, os
 import numpy as np
 
 from src.utils.teleop import teleop
@@ -15,6 +15,9 @@ if __name__ == "__main__":
     dataset_directory = config['dataset_directory']
     weights_directory = config['weights_directory']
     logging_directory = config['logging_directory']
+
+    for directory in [dataset_directory, weights_directory, logging_directory]:
+        os.makedirs(directory, exist_ok=True)
 
     logging.basicConfig(filename=f"{logging_directory}/{time.time()}.log", level=logging.INFO)
     logger.info('Started')

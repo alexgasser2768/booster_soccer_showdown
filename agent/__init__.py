@@ -1,1 +1,0 @@
-from .agent import Agent, LAYER_SIZE

@@ -1,0 +1,76 @@
+import logging
+
+import numpy as np
+from sklearn.model_selection import train_test_split
+import torch
+import torch.nn as nn
+from torch.utils.data import TensorDataset, DataLoader
+
+from .agent import Agent
+
+logger = logging.getLogger(__name__)
+
+
+def behavior_cloning(data_file: str, batch_size: int, epochs: int, learning_rate: float, n_states: int, n_actions: int, model_weights_directory: str, model_weights_prefix: str):
+    # Load the data
+    data = np.load(data_file)
+    observations = data["observations"][:, :24]
+    actions = data["actions"]
+
+    if len(observations) == 0 or len(actions) == 0:
+        logger.error("The observations array is empty.")
+        return
+
+    # Convert to PyTorch Tensors (Pad the remaining components with zeros since they are not needed right now)
+    X = torch.tensor(
+        np.tanh(np.hstack([observations, np.zeros((observations.shape[0], n_states - observations.shape[1]))])),
+        dtype=torch.float32
+    )
+    Y = torch.tensor(actions, dtype=torch.float32)
+
+    # Split data for validation
+    X_train, X_val, Y_train, Y_val = train_test_split(X, Y, test_size=0.1, random_state=42)
+
+    logger.info(f"Total Samples: {len(X)}")
+    logger.info(f"Observation Shape: {X_train.shape} (Input)")
+    logger.info(f"Action Target Shape: {Y_train.shape} (Output)")
+
+    model = Agent(n_states, n_actions)
+
+    # Setup loss and optimizer
+    criterion = nn.MSELoss() # Mean Squared Error is standard for regression tasks like this
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
+    # Create DataLoader for efficient batching
+    train_dataset = TensorDataset(X_train, Y_train)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    # --- Training Loop ---
+    logger.info("Starting Imitation Learning Training...")
+    for epoch in range(epochs):
+        total_loss = 0
+        for batch_X, batch_Y in train_loader:
+
+            # Forward pass
+            predicted_actions = model(batch_X)[0]
+            loss = criterion(predicted_actions, batch_Y)
+
+            # Backward and optimize
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            # Compute loss
+            total_loss += loss.item()
+
+        avg_loss = total_loss / len(train_loader)
+
+        val_predicted = model(X_val)[0]
+        val_loss = criterion(val_predicted, Y_val).item()
+
+        logger.info(f"Epoch {epoch + 1}/{epochs}, Loss: {avg_loss:.6f}, Val Loss: {val_loss:.6f}")
+
+    # --- Save Weights ---
+    weight_filename = model.saveWeights(model_weights_directory, prefix=model_weights_prefix)
+
+    logger.info(f"Model weights saved to {weight_filename}")

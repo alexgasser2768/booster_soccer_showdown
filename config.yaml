@@ -1,20 +1,36 @@
+dataset_directory: dataset/
+weights_directory: weights/
+logging_directory: logs/
+
 model:
   states: 52
   actions: 12
-  weights_directory: weights/
-  weights_to_load: il_actor_seed_weights.pt
-  weights_prefix: behavior_cloning
 
-ppo:
+teleop:  # Teleoperation data collection settings
+  enabled: False
+  position_sensitivity: 0.1
+  rotation_sensitivity: 1.5
+  file_prefix: teleop_data
+
+visualize:  # Visualization settings
+  enabled: True
+  weight_file: behavior_cloning-1764115380.7233655.pt
+
+behavior_cloning:  # Supervised Imitation Learning settings
+  enabled: False
+  batch_size: 64
+  epochs: 150
+  learning_rate: 0.0004
+  data_file: teleop_data-1764112264.3227012.npz
+  file_prefix: behavior_cloning
+
+ppo:  # Proximal Policy Optimization settings
+  enabled: False
   epochs: 50         # Number of times to update the policy using the collected data
   batch_size: 64     # Size of mini-batch for gradient descent
   clip_epsilon: 0.2      # Clipping parameter (epsilon)
   gamma: 0.99            # Discount factor
   gae_lambda: 0.95       # GAE factor
   learning_rate: 0.0003               # Learning rate
-
-behavior_cloning:
-  batch_size: 64
-  epochs: 400
-  learning_rate: 0.0004
-  dataset_path: ./booster_dataset/collected.npz
+  weight_file: behavior_cloning-1764115380.7233655.pt
+  file_prefix: ppo

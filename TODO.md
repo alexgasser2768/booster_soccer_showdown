@@ -2,24 +2,21 @@
     - [x] Understand how the environment is set and how to change the robot and ball spawn positions ->
     - [x] Understand how to set reward and how to set success/termination state
     - [x] Understand how to detect falls and terminate
-    - [ ] Find out if we can remove the goalies and change their speed (to make them slower/faster/static)
-    - [ ] Determine how we can differentiate between goals in AWAY and HOME teams
+    - [x] Find out if we can remove the goalies and change their speed (to make them slower/faster/static)
+    - [x] Determine how we can differentiate between goals in AWAY and HOME teams
     - [x] Understand how to manipulate info and observation data
-- [ ] Implement the RL agent:
+- [ ] Implement the NN agent:
     - [x] Implement the NN architecture
+    - [x] Behaviour cloning
     - [ ] Implement the PPO agent
     - [ ] Implement a WandB interface
-    - [ ] Test the agent with regular environment
-    - [ ] Test the agent in headless mode
+    - [x] Test the agent with regular environment
+    - [x] Test the agent in headless mode
     - [ ] Test with multiple agents in regular and headless modes
-- [ ] Begin training the model
+- [ ] Begin RL training of the model
     - [ ] Implement the reward environment for learning running
     - [ ] Implement the reward environment for learning passing
     - [ ] Implement the reward environment for learning shooting
-- [ ] Train model:
-    - [x] Behaviour cloning
-    - [ ] Reward based training
-
 - [ ] Running fast training
     - [ ] Update robot start pos and designate a finish line -> updated in venv/lib/python3.12/site-packages/sai_mujoco/envs/football/v0/penalty_kick.py line 246 from ball_qpos[0] + 5 * self.direction
     - [ ] Update reward function

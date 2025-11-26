@@ -36,6 +36,8 @@ ppo:  # Proximal Policy Optimization settings
   clip_epsilon: 0.2      # Clipping parameter (epsilon)
   gamma: 0.99            # Discount factor
   gae_lambda: 0.95       # GAE factor
+  entropy_beta: 0.01      # Entropy coeff
+  value_loss_coeff: 0.5    # Value Loss Coeff
   learning_rate: 0.0003               # Learning rate
   weight_file: behavior_cloning-1764142244.46165.pt
   file_prefix: ppo

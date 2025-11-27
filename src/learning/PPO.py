@@ -5,11 +5,11 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 
-from src.utils.simulation import SimulationEnvironment
-from src.learning.agent import Agent
-
+from ..utils.simulation import SimulationEnvironment
+from .agent import Agent
+from ..utils.utils import create_input_vector
 logger = logging.getLogger(__name__)
-with open("../../config.yaml", "r") as f:
+with open("config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
 
@@ -28,7 +28,7 @@ ENTROPY_BETA = config['ppo']['entropy_beta']    # Entropy Coefficient
 VALUE_LOSS_COEF = config['ppo']['value_loss_coeff']     # Value Loss Coefficient
 CLIP_GRADIENTS = True                          # Whether to clip gradients or not
 
-SEED_WEIGHTS_PATH = "./data/il_actor_seed_weights.pt"
+SEED_WEIGHTS_PATH = config['ppo']['weight_file']
 
 time_step = 0
 class PPOAgent:
@@ -51,9 +51,8 @@ class PPOAgent:
         self.gae_lambda = GAE_LAMBDA
         self.time_step = 0
 
-    def select_action(self, state):
+    def select_action(self, state_tensor):
         """ Selects an action based on the current policy. """
-        state_tensor = torch.FloatTensor(state).unsqueeze(0)
         _, mu, std, value = self.network(state_tensor)
 
         # Create a Gaussian distribution and sample an action
@@ -97,7 +96,7 @@ class PPOAgent:
         """ Performs the PPO policy and value updates. """
 
         # Convert collected data to PyTorch Tensors
-        states = torch.FloatTensor(states)
+        states = torch.FloatTensor(np.squeeze(states, axis=1))  # [batch, 1, 52] -> [batch, 52]
         actions = torch.FloatTensor(actions)
         old_log_probs = torch.FloatTensor(old_log_probs)
         advantages = torch.FloatTensor(advantages)
@@ -105,17 +104,17 @@ class PPOAgent:
 
         # Normalize advantages for more stable learning
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
-
         # Iterate through data for PPO_EPOCHS
+
+        # Shape of states: [2048, 1, 52]
         for _ in range(PPO_EPOCHS):
             # Create mini-batches for efficiency
-            for i in range(0, len(states), MINIBATCH_SIZE):
+            for i in range(0, states.shape[0], MINIBATCH_SIZE):
                 s = states[i:i+MINIBATCH_SIZE]
                 a = actions[i:i+MINIBATCH_SIZE]
                 old_p = old_log_probs[i:i+MINIBATCH_SIZE]
                 adv = advantages[i:i+MINIBATCH_SIZE]
                 ret = returns[i:i+MINIBATCH_SIZE]
-
                 # Forward pass
                 _, mu, std, values_new = self.network(s)
 
@@ -184,9 +183,7 @@ def _calculate_reward(terminated, info, time_step):
         #   - Target location will change to a random position every 5-10 seconds (time chosen is random)
     return reward # Placeholder
 
-def train():
-    ENV_NAME = "LowerT1KickToTarget-v0"
-    env = SimulationEnvironment(ENV_NAME, headless=True)
+def train(env):
     agent = PPOAgent(environment=env)
 
     max_timesteps = 1000000 # Total timesteps to train
@@ -194,27 +191,32 @@ def train():
 
     state, info = env.reset()
     time_step = 0
-
     for t in range(max_timesteps):
 
         states, actions, rewards, values, log_probs, dones = [], [], [], [], [], []
 
         for step in range(collect_steps):
             # Select action
-            action, log_prob, value_estimate = agent.select_action(state)
+            state = np.array(create_input_vector(info, state[:24])).reshape(1, -1)
+            state_tensor = torch.tensor(
+                state,
+                dtype=torch.float32
+            )
+            action, log_prob, value_estimate = agent.select_action(state_tensor)
+
+
 
             # Step environment
-            state_tensor = torch.FloatTensor(state).unsqueeze(0)
             ctrl, _, _, _ = agent.network(state_tensor)
 
             # Step environment using the PD control output 'ctrl'
-            next_state, _, terminated, truncated, info = env.step(ctrl.cpu().numpy().flatten())
+            next_state, _, terminated, truncated, info = env.step(ctrl.cpu().detach().numpy().flatten())
 
             # --- Custom Reward Calculation ---
             time_step += 1
             done = terminated or truncated
 
-            reward = _calculate_reward(terminated, info, episode_time_step)
+            reward = _calculate_reward(terminated, info, time_step)
 
             # Store data
             states.append(state)
@@ -228,14 +230,20 @@ def train():
 
             if done:
                 state, _ = env.reset()
-                episode_time_step = 0 # Reset episode time step
+                time_step = 0 # Reset episode time step
 
         # Get V(s_T) for the last state in the rollout (or 0 if done)
         if done:
             next_value = 0.0
         else:
             # We only need the value head output
-            _, _, _, next_value_tensor = agent.network(torch.FloatTensor(state).unsqueeze(0))
+            state = np.array(create_input_vector(info, state[:24])).reshape(1, -1)
+            print(state.shape)
+            state_tensor = torch.tensor(
+                state,
+                dtype=torch.float32
+            )
+            _, _, _, next_value_tensor = agent.network(state_tensor)
             next_value = next_value_tensor.item()
 
         advantages, returns = agent.compute_gae(
@@ -249,5 +257,5 @@ def train():
     env.close()
 
 if __name__ == '__main__':
-    # train() # Uncomment to start training
+    train() # Uncomment to start training
     print("PPO Skeleton Loaded. Focus on customizing _calculate_reward method and ensuring correct Agent output is used for env.step().")

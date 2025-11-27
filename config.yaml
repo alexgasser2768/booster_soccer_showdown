@@ -3,7 +3,7 @@ weights_directory: weights/
 logging_directory: logs/
 
 environment:  # Environment settings
-  name: LowerT1KickToTarget-v0  # Options: LowerT1KickToTarget-v0, LowerT1GoaliePenaltyKick-v0, LowerT1ObstaclePenaltyKick-v0, LowerT1PenaltyKick-v0
+  name: LowerT1PenaltyKick-v0  # Options: LowerT1PenaltyKick-v0, LowerT1GoaliePenaltyKick-v0, LowerT1ObstaclePenaltyKick-v0, LowerT1KickToTarget-v0
   headless: False
   max_episode_steps: 500
 

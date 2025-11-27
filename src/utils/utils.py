@@ -33,8 +33,8 @@ def create_input_vector(info: dict, joint_obs: np.ndarray) -> np.ndarray:
     target_velp_rel_robot = np.tanh(np.array(info['target_velp_rel_robot']))
 
     if np.all(goalkeeper_pos_rel_robot == 0) and np.all(target_pos_rel_robot == 0):  # Case where no goalkeeper and no target info is given
-        target_pos_rel_robot = ball_pos_rel_robot
-        target_velp_rel_robot = ball_velp_rel_robot
+        target_pos_rel_robot = goal_pos_rel_robot
+        target_velp_rel_robot = np.zeros((3, ))
     elif np.all(target_pos_rel_robot == 0):  # If target info is not given, determine the largest open area on goal that is not guarded by the goalkeeper
         goal_width = info['goal_width']
 

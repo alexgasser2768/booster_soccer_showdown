@@ -6,7 +6,7 @@ import sai_mujoco  # noqa: F401
 import gymnasium as gym
 import torch
 
-from ..learning import create_input_vector
+from ..booster_control import create_input_vector
 
 
 class Environment:
@@ -20,7 +20,7 @@ class Environment:
         else:
             self.env = gym.make(env_name, render_mode="human")
 
-        self.exited = False
+        self.is_closed = False
 
         self._viewer = self.env.unwrapped.mujoco_renderer._get_viewer("human")
         self._window = self._viewer.window
@@ -39,7 +39,7 @@ class Environment:
 
         self.episode_count += 1
         if self.episode_count > self.max_episodes:
-            self.exited = True
+            self.is_closed = True
             self.close()
 
         return observation, info, self.getAgentInput(info, observation)
@@ -57,11 +57,11 @@ class Environment:
         except Exception:
             pass
 
-    def close(self):
+    def close(self, raise_if_closed=False):
         self._close()
         self.env.close()
 
     def _quit(self, window, key, scancode, action, mods):
         if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
-            self.exited = True
+            self.is_closed = True
             self._close()

@@ -12,7 +12,7 @@ def visualize(simulation: Environment, weight_path: str, n_states: int, n_action
         observation, info, model_input = simulation.reset()
 
         while not (terminated or truncated):
-            ctrl = agent(model_input)[0]
+            ctrl = agent(model_input)
             ctrl = ctrl.detach().numpy().reshape((12, ))
 
             observation, reward, terminated, truncated, info, model_input = simulation.step(ctrl)
@@ -21,6 +21,6 @@ def visualize(simulation: Environment, weight_path: str, n_states: int, n_action
                 break
 
         # Check if user exited the simulation
-        if simulation.exited:
+        if simulation.is_closed:
             simulation.close()
             return

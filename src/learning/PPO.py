@@ -24,11 +24,13 @@ warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
 
 from ..environments import EnvironmentTorch
-from .agent import agent, LAYER_SIZE
+from .agent import Agent
 
 class PPOTrainer:
     def __init__(self,
         env: EnvironmentTorch,
+        n_states: int,
+        n_actions: int,
         lr: float,
         max_grad_norm: float,
         frames_per_batch: int,
@@ -38,29 +40,175 @@ class PPOTrainer:
         clip_epsilon: float,
         gamma: float,
         lmbda: float,
-        entropy_eps: float
+        entropy_eps: float,
+        weight_dir: str,
+        weight_file: str,
+        prefix: str
     ):
-
-        self.env = env
-
-        self.device = (
-            torch.device(0)
-            if torch.cuda.is_available() and multiprocessing.get_start_method() != "fork"
-            else torch.device("cpu")
+        self.env = TransformedEnv(
+            env,
+            Compose(
+                # normalize observations
+                ObservationNorm(
+                    in_keys=["observation"],
+                ),
+                DoubleToFloat(),
+                StepCounter(),
+            ),
         )
+        self.env.transform[0].init_stats(num_iter=1000, reduce_dim=0, cat_dim=0)
 
-        self.lr = lr
+        self.device =self.env.device
+
         self.max_grad_norm = max_grad_norm
 
-        self.frames_per_batch = frames_per_batch
         self.total_frames = total_frames
-
+        self.frames_per_batch = frames_per_batch
         self.sub_batch_size = sub_batch_size
         self.num_epochs = num_epochs
-        self.clip_epsilon = clip_epsilon
-        self.gamma = gamma
-        self.lmbda = lmbda
-        self.entropy_eps = entropy_eps
 
+        self.weight_dir = weight_dir
+        self.prefix = prefix
+
+
+        self.agent = Agent(
+            n_states=n_states,
+            n_actions=n_actions
+        )
+        self.agent.loadWeights(f"{self.weight_dir}/{weight_file}")
+
+        self.policy_module = ProbabilisticActor(
+            module=TensorDictModule(
+                self.agent.actor_head,
+                in_keys=["observation"],
+                out_keys=["loc", "scale"]
+            ),
+            spec=self.env.action_spec,
+            in_keys=["loc", "scale"],
+            distribution_class=TanhNormal,
+            distribution_kwargs={
+                "low": self.env.action_spec.space.low,
+                "high": self.env.action_spec.space.high,
+            },
+            return_log_prob=True,  # Used for the numerator of the importance weights
+        )
+
+        self.value_module = ValueOperator(
+            module=self.agent.critic_head,
+            in_keys=["observation"],
+        )
+
+        self.collector = SyncDataCollector(
+            self.env,
+            self.policy_module,
+            frames_per_batch=frames_per_batch,
+            total_frames=total_frames,
+            split_trajs=False,
+            device=self.device,
+        )
+
+        self.replay_buffer = ReplayBuffer(
+            storage=LazyTensorStorage(max_size=frames_per_batch),
+            sampler=SamplerWithoutReplacement(),
+        )
+
+        self.advantage_module = GAE(
+            gamma=gamma,
+            lmbda=lmbda,
+            value_network=self.value_module,
+            average_gae=True,
+            device=self.device,
+        )
+
+        self.loss_module = ClipPPOLoss(
+            actor_network=self.policy_module,
+            critic_network=self.value_module,
+            clip_epsilon=clip_epsilon,
+            entropy_bonus=bool(entropy_eps),
+            entropy_coef=entropy_eps,
+            critic_coef=1.0,
+            loss_critic_type="smooth_l1",
+        )
+
+        self.optim = torch.optim.Adam(
+            self.loss_module.parameters(),
+            lr
+        )
+
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            self.optim, total_frames // frames_per_batch, 0.0
+        )
+
+    def _train(self):
+        logs = defaultdict(list)
+        eval_str = ""
+
+        # We iterate over the collector until it reaches the total number of frames it was
+        # designed to collect:
+        for i, tensordict_data in enumerate(tqdm(self.collector, total=self.total_frames)):
+            # we now have a batch of data to work with. Let's learn something from it.
+            for _ in range(self.num_epochs):
+                # We'll need an "advantage" signal to make PPO work.
+                # We re-compute it at each epoch as its value depends on the value
+                # network which is updated in the inner loop.
+                self.advantage_module(tensordict_data)
+                data_view = tensordict_data.reshape(-1)
+                self.replay_buffer.extend(data_view.cpu())
+                for _ in range(self.frames_per_batch // self.sub_batch_size):
+                    subdata = self.replay_buffer.sample(self.sub_batch_size)
+                    loss_vals = self.loss_module(subdata.to(self.device))
+                    loss_value = loss_vals["loss_objective"] + loss_vals["loss_critic"] + loss_vals["loss_entropy"]
+
+                    # Optimization: backward, grad clipping and optimization step
+                    loss_value.backward()
+                    # this is not strictly mandatory but it's good practice to keep
+                    # your gradient norm bounded
+                    torch.nn.utils.clip_grad_norm_(self.loss_module.parameters(), self.max_grad_norm)
+                    self.optim.step()
+                    self.optim.zero_grad()
+
+            logs["reward"].append(tensordict_data["next", "reward"].mean().item())
+
+            cum_reward_str = f"average reward={logs['reward'][-1]: 4.4f} (init={logs['reward'][0]: 4.4f})"
+
+            logs["step_count"].append(tensordict_data["step_count"].max().item())
+            stepcount_str = f"step count (max): {logs['step_count'][-1]}"
+            logs["lr"].append(self.optim.param_groups[0]["lr"])
+            lr_str = f"lr policy: {logs['lr'][-1]: 4.4f}"
+            if i % 10 == 0:
+                # We evaluate the policy once every 10 batches of data.
+                # Evaluation is rather simple: execute the policy without exploration
+                # (take the expected value of the action distribution) for a given
+                # number of steps (1000, which is our ``env`` horizon).
+                # The ``rollout`` method of the ``env`` can take a policy as argument:
+                # it will then execute this policy at each step.
+                with set_exploration_type(ExplorationType.DETERMINISTIC), torch.no_grad():
+                    # execute a rollout with the trained policy
+                    eval_rollout = self.env.rollout(1000, self.policy_module)
+                    logs["eval reward"].append(eval_rollout["next", "reward"].mean().item())
+                    logs["eval reward (sum)"].append(
+                        eval_rollout["next", "reward"].sum().item()
+                    )
+                    logs["eval step_count"].append(eval_rollout["step_count"].max().item())
+                    eval_str = (
+                        f"eval cumulative reward: {logs['eval reward (sum)'][-1]: 4.4f} "
+                        f"(init: {logs['eval reward (sum)'][0]: 4.4f}), "
+                        f"eval step-count: {logs['eval step_count'][-1]}"
+                    )
+                    del eval_rollout
+
+            logger.info(", ".join([eval_str, cum_reward_str, stepcount_str, lr_str]))
+
+            # We're also using a learning rate scheduler. Like the gradient clipping,
+            # this is a nice-to-have but nothing necessary for PPO to work.
+            self.scheduler.step()
+
+    def train(self):
+        try:
+            self._train()
+        except (KeyboardInterrupt, Exception) as e:
+            logger.error(f"Training stopped due to the following exception: {e}")
+        finally:
+            self.agent.saveWeights(self.weight_dir, prefix=self.prefix)
 
 

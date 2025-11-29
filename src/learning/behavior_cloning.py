@@ -8,7 +8,7 @@ import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
 
 from .agent import Agent
-from .utils import create_input_vector
+from ..booster_control import create_input_vector
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ def behavior_cloning(data_files: str, batch_size: int, epochs: int, learning_rat
 
             for batch_X, batch_Y in train_loader:
                 # Forward pass
-                predicted_actions = model(batch_X)[0]
+                predicted_actions = model(batch_X)
                 loss = criterion(predicted_actions, batch_Y)
 
                 # Backward and optimize
@@ -73,7 +73,7 @@ def behavior_cloning(data_files: str, batch_size: int, epochs: int, learning_rat
 
             avg_loss = total_loss / len(train_loader)
 
-            test_predicted = model(X_test)[0]
+            test_predicted = model(X_test)
             test_loss = criterion(test_predicted, Y_test).item()
 
             logger.info(f"Epoch {epoch + 1}/{epochs}, Loss: {avg_loss:.6f}, Test Loss: {test_loss:.6f}")

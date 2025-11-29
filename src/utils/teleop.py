@@ -44,7 +44,7 @@ def teleop(simulation: Environment, pos_sensitivity: float, rot_sensitivity: flo
                 dataset["infos"].append(info)
                 dataset["actions"].append(ctrl)
 
-                if simulation.exited or keyboard_controller.should_quit():
+                if simulation.is_closed or keyboard_controller.should_quit():
                     simulation.close()
                     collect_data = False
                     break

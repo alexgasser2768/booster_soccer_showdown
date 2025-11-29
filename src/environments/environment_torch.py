@@ -13,6 +13,11 @@ class EnvironmentTorch(Environment, EnvBase):
         # Call the parent constructor of Environment
         super().__init__(*args, **kwargs)
 
+        # So that TransformedEnv to work
+        self._modules = {}
+        self._allow_done_after_reset = False
+        self.run_type_checks = False
+
         self.device = (
             torch.device(0)
             if torch.cuda.is_available() and torch.multiprocessing.get_start_method() != "fork"
@@ -24,7 +29,6 @@ class EnvironmentTorch(Environment, EnvBase):
 
     def _step(self, tensordict: TensorDictBase) -> TensorDictBase:
         action = tensordict["action"].cpu().numpy()
-        observation_t = tensordict["observation"].clone() 
 
         obs, reward, terminated, truncated, info, agent_input = super().step(action)
 
@@ -38,18 +42,18 @@ class EnvironmentTorch(Environment, EnvBase):
         # Create the output tensordict
         return TensorDict(
             {
-                "observation": observation_t, 
+                "observation": tensordict["observation"].clone() ,
                 "action": tensordict["action"].clone(),
                 "terminated": terminated_t,
                 "truncated": truncated_t,
                 "done": done_t,
-                
+                "reward": reward_t,
                 # 'next' contains the resulting state
                 "next": TensorDict(
                     {
                         "observation": next_observation_t,
-                        "reward": reward_t, 
-                        "terminated": terminated_t, 
+                        "reward": reward_t,
+                        "terminated": terminated_t,
                         "truncated": truncated_t,
                         "done": done_t,
                     },

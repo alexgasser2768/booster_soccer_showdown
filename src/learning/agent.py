@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from tensordict.nn.distributions import NormalParamExtractor
 
 import time
 from typing import Tuple
@@ -8,13 +9,14 @@ LAYER_SIZE = 256
 
 
 class Agent(nn.Module):
-    def __init__(self, n_states, n_actions, std_value = 2.3):
+    def __init__(self, n_states, n_actions):
         super(Agent, self).__init__()
 
         # Match the shared network architecture
         self.shared_net = nn.Sequential(
-            # nn.Tanh(),
             nn.Linear(n_states, LAYER_SIZE),
+            nn.LeakyReLU(),
+            nn.Linear(LAYER_SIZE, LAYER_SIZE),
             nn.LeakyReLU(),
             nn.Linear(LAYER_SIZE, LAYER_SIZE),
             nn.LeakyReLU(),
@@ -25,16 +27,15 @@ class Agent(nn.Module):
         )
 
         self.actor_head = nn.Sequential(
-            nn.Linear(LAYER_SIZE, n_actions),
-            nn.Tanh(),
+            self.shared_net,
+            nn.Linear(LAYER_SIZE, 2*n_actions),
+            NormalParamExtractor(),
         )
 
-        self.critic_head = nn.Linear(LAYER_SIZE, 1)
-
-        # Log Standard Deviation (for continuous actions)
-        # This is a parameter, not a layer output, and is learned directly.
-        # Initialize to a small value (e.g., log(0.1) ~ -2.3)
-        self.log_std = nn.Parameter(torch.zeros(1, n_actions) - std_value)
+        self.critic_head = nn.Sequential(
+            self.shared_net,
+            nn.Linear(LAYER_SIZE, 1)
+        )
 
         # Constants (adapted from booster_control/t1_utils.py)
         self.register_buffer("default_dof_pos", torch.tensor(
@@ -49,25 +50,21 @@ class Agent(nn.Module):
             [45, 45, 30, 65, 24, 15, 45, 45, 30, 65, 24, 15], dtype=torch.float32))
 
     def forward(self, x) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        features = self.shared_net(x)  # Output of encoder
-        mu = self.actor_head(features)  # Joint velocities
+        loc, scale = self.actor_head(x)  # location and scale
 
-        # PD control + Clamp (adapted from booster_control/t1_utils.py)
-        qpos = x[:, :12]
-        qvel = x[:, 12:24]
+        return loc
 
-        targets = self.default_dof_pos.expand(x.shape[0], -1) + mu
-        ctrl = self.dof_stiffness * (targets - qpos) - self.dof_damping * qvel
-        ctrl = torch.minimum(
-            torch.maximum(ctrl, self.ctrl_min.expand_as(ctrl)),
-            self.ctrl_max.expand_as(ctrl)
-        )
+        # # PD control + Clamp (adapted from booster_control/t1_utils.py)
+        # qpos = x[:, :12]
+        # qvel = x[:, 12:24]
 
-        # Control Output, Mean of Gaussian distribution, Standard deviation, State Value
-        return ctrl, \
-            mu, \
-            torch.exp(self.log_std.expand_as(mu)), \
-            self.critic_head(features)
+        # targets = self.default_dof_pos.expand(x.shape[0], -1) + loc
+        # ctrl = self.dof_stiffness * (targets - qpos) - self.dof_damping * qvel
+
+        # return torch.minimum(
+        #     torch.maximum(ctrl, self.ctrl_min.expand_as(ctrl)),
+        #     self.ctrl_max.expand_as(ctrl)
+        # )
 
     def saveWeights(self, directory, prefix = "") -> str:
         name = f"{prefix}-{time.time()}.pt"

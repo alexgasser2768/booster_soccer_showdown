@@ -25,8 +25,13 @@ behavior_cloning:  # Supervised Imitation Learning settings
   enabled: False
   batch_size: 64
   epochs: 500
-  learning_rate: 0.0001
-  data_file: teleop_data-1764396039.972338.npz
+  learning_rate: 0.001
+  data_files:
+    - teleop_data-1764112264.3227012.npz
+    - part_1.npz
+    - part_2.npz
+    - part_3.npz
+    - part_4.npz
   file_prefix: behavior_cloning
 
 ppo:  # Proximal Policy Optimization settings

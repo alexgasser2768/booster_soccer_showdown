@@ -71,14 +71,14 @@ if __name__ == "__main__":
     if config['behavior_cloning']['enabled']:
         logger.info("Starting Behavior Cloning Training...")
 
-        data_file = config['behavior_cloning']['data_file']
+        data_files = config['behavior_cloning']['data_files']
         batch_size = config['behavior_cloning']['batch_size']
         epochs = config['behavior_cloning']['epochs']
         learning_rate = config['behavior_cloning']['learning_rate']
         file_prefix = config['behavior_cloning']['file_prefix']
 
         behavior_cloning(
-            data_file=f"{dataset_directory}/{data_file}",
+            data_files=[f"{dataset_directory}/{data_file}" for data_file in data_files],
             batch_size=batch_size,
             epochs=epochs,
             learning_rate=learning_rate,

@@ -13,19 +13,24 @@ from .utils import create_input_vector
 logger = logging.getLogger(__name__)
 
 
-def behavior_cloning(data_file: str, batch_size: int, epochs: int, learning_rate: float, n_states: int, n_actions: int, model_weights_directory: str, model_weights_prefix: str):
+def behavior_cloning(data_files: str, batch_size: int, epochs: int, learning_rate: float, n_states: int, n_actions: int, model_weights_directory: str, model_weights_prefix: str):
+    observations = None
+    infos = None
+    actions = None
+
     # Load the data
-    data = np.load(data_file, allow_pickle=True)
-    observations = data["observations"][:, :24]
-    info = data["infos"]
-    actions = data["actions"]
+    for d_file in data_files:
+        data = np.load(d_file, allow_pickle=True)
+        observations = data["observations"][:, :24] if observations is None else np.concatenate([observations, data["observations"][:, :24]])
+        infos = data["infos"] if infos is None else np.concatenate([infos, data["infos"]])
+        actions = data["actions"] if actions is None else np.concatenate([actions, data["actions"]])
 
     if len(observations) == 0 or len(actions) == 0:
         logger.error("The observations array is empty.")
         return
 
     X = torch.tensor(
-        np.array([create_input_vector(info[i], observations[i]) for i in range(len(observations))]),
+        np.array([create_input_vector(infos[i], observations[i]) for i in range(len(observations))]),
         dtype=torch.float32
     )
     Y = torch.tensor(actions, dtype=torch.float32)

@@ -3,9 +3,9 @@ weights_directory: weights/
 logging_directory: logs/
 
 environment:  # Environment settings
-  name: LowerT1PenaltyKick-v0  # Options: LowerT1PenaltyKick-v0, LowerT1GoaliePenaltyKick-v0, LowerT1ObstaclePenaltyKick-v0, LowerT1KickToTarget-v0
+  name: LowerT1KickToTarget-v0  # Options: LowerT1PenaltyKick-v0, LowerT1GoaliePenaltyKick-v0, LowerT1ObstaclePenaltyKick-v0, LowerT1KickToTarget-v0
   headless: False
-  max_episode_steps: 500
+  max_episode_steps: 1000
 
 model:
   states: 52
@@ -13,20 +13,20 @@ model:
 
 teleop:  # Teleoperation data collection settings
   enabled: False
-  position_sensitivity: 0.1
+  position_sensitivity: 0.01
   rotation_sensitivity: 1.5
   file_prefix: teleop_data
 
 visualize:  # Visualization settings
   enabled: True
-  weight_file: behavior_cloning-1764142244.46165.pt
+  weight_file: behavior_cloning-1764414063.5090306.pt
 
 behavior_cloning:  # Supervised Imitation Learning settings
   enabled: False
   batch_size: 64
-  epochs: 150
-  learning_rate: 0.0004
-  data_file: teleop_data-1764112264.3227012.npz
+  epochs: 500
+  learning_rate: 0.0001
+  data_file: teleop_data-1764396039.972338.npz
   file_prefix: behavior_cloning
 
 ppo:  # Proximal Policy Optimization settings

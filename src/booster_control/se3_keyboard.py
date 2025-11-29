@@ -198,6 +198,7 @@ class Se3Keyboard:
         if key_char in self._INPUT_KEY_MAPPING.keys():
             # Handle key press
             if action == glfw.PRESS:
+                print(f"Key pressed: {key_char}")
                 self._pressed_keys.add(key_char)
                 self._handle_key_press(key_char)
 
@@ -212,7 +213,6 @@ class Se3Keyboard:
     def _handle_key_press(self, key_char):
         """Handle key press events."""
         # Apply the command when pressed
-        print(f"Key pressed: {key_char}")
         if key_char == "L":
             self.reset()
         elif key_char == "P" and self._reset_env_callback:

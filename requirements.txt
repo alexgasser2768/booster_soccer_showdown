@@ -1,6 +1,7 @@
 sai_mujoco
 sai_rl
 torch
+torchrl
 imageio
 huggingface_hub
 hf_xet

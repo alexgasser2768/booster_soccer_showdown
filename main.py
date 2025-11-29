@@ -1,10 +1,10 @@
 import yaml, time, logging, os
 import numpy as np
+from torchrl.envs import check_env_specs
 
-from src.utils.simulation import SimulationEnvironment
-from src.utils.teleop import teleop
-from src.utils.visualize_model import visualize
-from src.learning.behavior_cloning import behavior_cloning
+from src.environments import Environment, WalkToBallEnv, PenaltyKickEnv, GoaliePenaltyKickEnv, ObstaclePenaltyKickEnv, KickToTargetEnv
+from src.utils import teleop, visualize
+from src.learning import behavior_cloning
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     for directory in [dataset_directory, weights_directory, logging_directory]:
         os.makedirs(directory, exist_ok=True)
 
-    logging.basicConfig(filename=f"{logging_directory}/{time.time()}.log", level=logging.INFO)
+    logging.basicConfig(format='%(asctime)s - %(name)s - [%(levelname)s]: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', filename=f"{logging_directory}/{time.time()}.log", level=logging.INFO)
     logger.info('Started')
 
     n_states = config['model']['states']
@@ -30,9 +30,11 @@ if __name__ == "__main__":
     env_headless = config['environment']['headless']
     env_max_episode_steps = config['environment']['max_episode_steps']
 
-    simulation = SimulationEnvironment(env_name=env_name, headless=env_headless, max_episodes=env_max_episode_steps)
+    simulation = Environment(env_name=env_name, headless=env_headless, max_episodes=env_max_episode_steps)
 
     if config['teleop']['enabled']:
+        logger.info("Starting Teleoperation Data Collection...")
+
         file_prefix = config['teleop']['file_prefix']
         pos_sensitivity = config['teleop']['position_sensitivity']
         rot_sensitivity = config['teleop']['rotation_sensitivity']
@@ -52,9 +54,11 @@ if __name__ == "__main__":
             actions=np.array(dataset["actions"])
         )
 
-        print(f"Dataset saved to {dataset_path}")
+        logger.info(f"Dataset saved to {dataset_path}")
 
     if config["visualize"]["enabled"]:
+        logger.info("Starting Model Visualization...")
+
         weight_path = f"{weights_directory}/{config['visualize']['weight_file']}"
 
         visualize(
@@ -65,6 +69,8 @@ if __name__ == "__main__":
         )
 
     if config['behavior_cloning']['enabled']:
+        logger.info("Starting Behavior Cloning Training...")
+
         data_file = config['behavior_cloning']['data_file']
         batch_size = config['behavior_cloning']['batch_size']
         epochs = config['behavior_cloning']['epochs']

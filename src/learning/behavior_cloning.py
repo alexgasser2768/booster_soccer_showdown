@@ -1,4 +1,5 @@
 import logging
+from tqdm import tqdm
 
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -7,7 +8,7 @@ import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
 
 from .agent import Agent
-from ..utils.utils import create_input_vector
+from .utils import create_input_vector
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,6 @@ def behavior_cloning(data_file: str, batch_size: int, epochs: int, learning_rate
         logger.error("The observations array is empty.")
         return
 
-    # Convert to PyTorch Tensors (Pad the remaining components with zeros since they are not needed right now)
     X = torch.tensor(
         np.array([create_input_vector(info[i], observations[i]) for i in range(len(observations))]),
         dtype=torch.float32
@@ -31,7 +31,7 @@ def behavior_cloning(data_file: str, batch_size: int, epochs: int, learning_rate
     Y = torch.tensor(actions, dtype=torch.float32)
 
     # Split data for validation
-    X_train, X_val, Y_train, Y_val = train_test_split(X, Y, test_size=0.1, random_state=42)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.1)
 
     logger.info(f"Total Samples: {len(X)}")
     logger.info(f"Observation Shape: {X_train.shape} (Input)")
@@ -49,28 +49,31 @@ def behavior_cloning(data_file: str, batch_size: int, epochs: int, learning_rate
 
     # --- Training Loop ---
     logger.info("Starting Imitation Learning Training...")
-    for epoch in range(epochs):
-        total_loss = 0
-        for batch_X, batch_Y in train_loader:
+    try:
+        for epoch in tqdm(range(epochs)):
+            total_loss = 0
 
-            # Forward pass
-            predicted_actions = model(batch_X)[0]
-            loss = criterion(predicted_actions, batch_Y)
+            for batch_X, batch_Y in train_loader:
+                # Forward pass
+                predicted_actions = model(batch_X)[0]
+                loss = criterion(predicted_actions, batch_Y)
 
-            # Backward and optimize
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+                # Backward and optimize
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
 
-            # Compute loss
-            total_loss += loss.item()
+                # Compute loss
+                total_loss += loss.item()
 
-        avg_loss = total_loss / len(train_loader)
+            avg_loss = total_loss / len(train_loader)
 
-        val_predicted = model(X_val)[0]
-        val_loss = criterion(val_predicted, Y_val).item()
+            test_predicted = model(X_test)[0]
+            test_loss = criterion(test_predicted, Y_test).item()
 
-        logger.info(f"Epoch {epoch + 1}/{epochs}, Loss: {avg_loss:.6f}, Val Loss: {val_loss:.6f}")
+            logger.info(f"Epoch {epoch + 1}/{epochs}, Loss: {avg_loss:.6f}, Test Loss: {test_loss:.6f}")
+    except KeyboardInterrupt:
+        pass
 
     # --- Save Weights ---
     weight_filename = model.saveWeights(model_weights_directory, prefix=model_weights_prefix)

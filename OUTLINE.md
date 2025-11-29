@@ -120,7 +120,8 @@ info = {
     'goalkeeper_team_1_velp_rel_robot': array([0., 0., 0.]),
     'target_xpos_rel_robot': array([12.44927069,  2.228258  , -0.699     ]),
     'target_velp_rel_robot': array([ 0.0799671 ,  0.05742587, -0.028308  ]),
-    'defender_xpos': array([-5.20004893, -4.03897027,  0.7       , -5.20004893, -4.03897027,  0.7       , -5.20004893, -4.03897027,  0.7       ]), 'success': False,
+    'defender_xpos': array([-5.20004893, -4.03897027,  0.7       , -5.20004893, -4.03897027,  0.7       , -5.20004893, -4.03897027,  0.7       ]),
+    'success': False,
     'reward_terms': {
         'offside': np.False_,
         'success': False,

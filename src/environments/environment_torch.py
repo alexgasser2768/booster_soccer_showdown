@@ -6,7 +6,7 @@ from torchrl.data import Composite, Bounded, Unbounded
 from torchrl.envs import EnvBase
 
 from .environment import Environment
-from ..booster_control import joint_velocities_to_actions
+from ..booster_control import DEVICE, joint_velocities_to_actions
 
 
 class EnvironmentTorch(Environment, EnvBase):
@@ -19,11 +19,7 @@ class EnvironmentTorch(Environment, EnvBase):
         self._allow_done_after_reset = False
         self.run_type_checks = False
 
-        self.device = (
-            torch.device(0)
-            if torch.cuda.is_available() and torch.multiprocessing.get_start_method() != "fork"
-            else torch.device("cpu")
-        )
+        self.device = DEVICE
 
         # We need to call _make_spec to initialize the specs
         self._make_spec()
@@ -32,8 +28,10 @@ class EnvironmentTorch(Environment, EnvBase):
         if torch.isinf(tensordict["observation"]).any() or torch.isnan(tensordict["observation"]).any():
             raise ValueError("Observation contains inf or nan values.")
         if torch.isinf(tensordict["action"]).any() or torch.isnan(tensordict["action"]).any():
-            print(tensordict["action"])
-            raise ValueError("Observation contains inf or nan values.")
+            raise ValueError("Action contains inf or nan values.")
+        if torch.any(torch.abs(tensordict["action"]) > 1):
+            raise ValueError("Action contains values outside [-1, 1].")
+
         action = joint_velocities_to_actions(tensordict["observation"], tensordict["action"])
         action = action.cpu().numpy()
 

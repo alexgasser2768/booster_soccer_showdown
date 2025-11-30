@@ -1,5 +1,6 @@
 import logging, warnings
 from collections import defaultdict
+from tqdm import tqdm
 
 import torch
 from tensordict.nn import TensorDictModule
@@ -7,15 +8,11 @@ from torchrl.collectors import SyncDataCollector
 from torchrl.data.replay_buffers import ReplayBuffer
 from torchrl.data.replay_buffers.samplers import SamplerWithoutReplacement
 from torchrl.data.replay_buffers.storages import LazyTensorStorage
-from torchrl.envs import (Compose, DoubleToFloat, ObservationNorm, StepCounter,
-                          TransformedEnv)
+from torchrl.envs import Compose, DoubleToFloat, StepCounter, TransformedEnv
 from torchrl.envs.utils import ExplorationType, set_exploration_type
 from torchrl.modules import ProbabilisticActor, TanhNormal, ValueOperator
 from torchrl.objectives import ClipPPOLoss
 from torchrl.objectives.value import GAE
-
-from tqdm import tqdm
-import matplotlib.pyplot as plt
 
 warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
@@ -45,16 +42,10 @@ class PPOTrainer:
         self.env = TransformedEnv(
             env,
             Compose(
-                # normalize observations
-                # ObservationNorm(
-                #     in_keys=["observation"],
-                # ),
                 DoubleToFloat(),
                 StepCounter(),
             ),
         )
-        # self.env.transform[0].init_stats(num_iter=1000, reduce_dim=0, cat_dim=0)
-        # print(self.env.rollout(10))
 
         self.device = self.env.device
 
@@ -67,7 +58,6 @@ class PPOTrainer:
 
         self.weight_dir = weight_dir
         self.prefix = prefix
-
 
         self.agent = Agent(
             n_states=n_states,
@@ -145,7 +135,7 @@ class PPOTrainer:
             self.optim, total_frames // frames_per_batch, 0.0
         )
 
-    def _train(self):
+    def _train(self) -> defaultdict:
         logs = defaultdict(list)
         eval_str = ""
 
@@ -209,12 +199,15 @@ class PPOTrainer:
             # this is a nice-to-have but nothing necessary for PPO to work.
             self.scheduler.step()
 
-    def train(self):
-        # try:
-            self._train()
-        # except (KeyboardInterrupt, Exception) as e:
-            # logger.error(f"Training stopped due to the following exception: {e}")
-        # finally:
-            # self.agent.saveWeights(self.weight_dir, prefix=self.prefix)
+        return logs
 
+    def train(self) -> defaultdict | None:
+        data = None
+        try:
+            data = self._train()
+        except (KeyboardInterrupt, Exception) as e:
+            logger.error(f"Training stopped due to the following exception: {e}")
+        finally:
+            self.agent.saveWeights(self.weight_dir, prefix=self.prefix)
 
+        return data

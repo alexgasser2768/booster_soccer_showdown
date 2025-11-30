@@ -1,5 +1,6 @@
 import yaml, time, logging, os
 import numpy as np
+import matplotlib.pyplot as plt
 
 from src.environments import Environment, WalkToBallEnv, PenaltyKickEnv, GoaliePenaltyKickEnv, ObstaclePenaltyKickEnv, KickToTargetEnv
 from src.utils import teleop, visualize
@@ -16,7 +17,7 @@ if __name__ == "__main__":
     weights_directory = config['weights_directory']
     logging_directory = config['logging_directory']
 
-    for directory in [dataset_directory, weights_directory, logging_directory]:
+    for directory in [dataset_directory, weights_directory, logging_directory, f"{logging_directory}/plots/"]:
         os.makedirs(directory, exist_ok=True)
 
     logging.basicConfig(format='%(asctime)s - %(name)s - [%(levelname)s]: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', filename=f"{logging_directory}/{time.time()}.log", level=logging.INFO)
@@ -107,7 +108,7 @@ if __name__ == "__main__":
         weight_file = config['ppo']['weight_file']
         file_prefix = config['ppo']['file_prefix']
 
-        env = WalkToBallEnv(headless=True)
+        env = WalkToBallEnv()
         if task == "PenaltyKick":
             env = PenaltyKickEnv()
         elif task == "GoaliePenaltyKick":
@@ -135,7 +136,30 @@ if __name__ == "__main__":
             weight_file = weight_file,
             prefix = file_prefix
         )
+        data = trainer.train()
 
-        trainer.train()
+        if data is not None:
+            plt.figure(figsize=(10, 10))
 
+            plt.subplot(2, 2, 1)
+            plt.plot(data["reward"])
+            plt.title("training rewards (average)")
+
+            plt.subplot(2, 2, 2)
+            plt.plot(data["step_count"])
+            plt.title("Max step count (training)")
+
+            plt.subplot(2, 2, 3)
+            plt.plot(data["eval reward (sum)"])
+            plt.title("Return (test)")
+
+            plt.subplot(2, 2, 4)
+            plt.plot(data["eval step_count"])
+            plt.title("Max step count (test)")
+
+            plt.tight_layout()
+            plt.savefig(f"{logging_directory}/plots/PPO_{time.time()}.jpg")
+            plt.close('all')
+
+    simulation.close()
     logger.info('Finished')

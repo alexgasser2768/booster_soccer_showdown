@@ -55,12 +55,15 @@ class Environment:
     def _close(self):
         try:
             glfw.set_window_should_close(self._window, True)
-        except Exception:
+        except:
             pass
 
     def close(self, raise_if_closed=False):
-        self._close()
-        self.env.close()
+        try:
+            self._close()
+            self.env.close()
+        except:
+            pass
 
     def _quit(self, window, key, scancode, action, mods):
         if key == glfw.KEY_ESCAPE and action == glfw.PRESS:

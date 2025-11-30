@@ -49,7 +49,7 @@ def teleop(simulation: Environment, pos_sensitivity: float, rot_sensitivity: flo
                     collect_data = False
                     break
 
-                observation, reward, terminated, truncated, info = simulation.env.step(ctrl)
+                observation, _, terminated, truncated, info = simulation.env.step(ctrl)
 
                 if terminated or truncated:
                     break

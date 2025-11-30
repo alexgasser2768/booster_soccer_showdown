@@ -8,7 +8,7 @@ import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
 
 from .agent import Agent
-from ..booster_control import create_input_vector
+from ..booster_control import DEVICE, create_input_vector
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +31,10 @@ def behavior_cloning(data_files: str, batch_size: int, epochs: int, learning_rat
 
     X = torch.tensor(
         np.array([create_input_vector(infos[i], observations[i]) for i in range(len(observations))]),
-        dtype=torch.float32
+        dtype=torch.float32,
+        device=DEVICE
     )
-    Y = torch.tensor(actions, dtype=torch.float32)
+    Y = torch.tensor(actions, dtype=torch.float32, device=DEVICE)
 
     # Split data for validation
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.1)
@@ -47,6 +48,7 @@ def behavior_cloning(data_files: str, batch_size: int, epochs: int, learning_rat
         model.loadWeights(f"{model_weights_directory}/{model_weights_file}")
     except:
         pass
+    model.to(DEVICE)
 
     # Setup loss and optimizer
     criterion = nn.MSELoss() # Mean Squared Error is standard for regression tasks like this

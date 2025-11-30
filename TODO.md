@@ -1,22 +1,33 @@
-- [ ] Become familiar with Mujoco:
+- [x] Become familiar with Mujoco:
     - [x] Understand how the environment is set and how to change the robot and ball spawn positions ->
     - [x] Understand how to set reward and how to set success/termination state
     - [x] Understand how to detect falls and terminate
     - [x] Find out if we can remove the goalies and change their speed (to make them slower/faster/static)
     - [x] Determine how we can differentiate between goals in AWAY and HOME teams
     - [x] Understand how to manipulate info and observation data
-- [ ] Implement the NN agent:
+- [ ] Implement the training code:
     - [x] Implement the NN architecture
     - [x] Behaviour cloning
-    - [ ] Implement the PPO agent
-    - [ ] Implement a WandB interface
+    - [x] Implement the PPO agent
     - [x] Test the agent with regular environment
     - [x] Test the agent in headless mode
-    - [ ] Test with multiple agents in regular and headless modes
-- [ ] Begin RL training of the model
-    - [ ] Implement the reward environment for learning running
-    - [ ] Implement the reward environment for learning passing
-    - [ ] Implement the reward environment for learning shooting
-- [ ] Running fast training
-    - [ ] Update robot start pos and designate a finish line -> updated in venv/lib/python3.12/site-packages/sai_mujoco/envs/football/v0/penalty_kick.py line 246 from ball_qpos[0] + 5 * self.direction
-    - [ ] Update reward function
+    - [ ] Parallelize environment:
+        - [ ] https://docs.pytorch.org/tutorials/intermediate/reinforcement_ppo.html#conclusion-and-next-steps
+        - [ ] https://docs.pytorch.org/rl/stable/reference/generated/torchrl.collectors.MultiSyncDataCollector.html#torchrl.collectors.MultiSyncDataCollector
+        - [ ] https://docs.pytorch.org/rl/stable/reference/generated/torchrl.collectors.MultiaSyncDataCollector.html#torchrl.collectors.MultiaSyncDataCollector
+        - [ ] https://docs.pytorch.org/rl/main/reference/envs_vectorized.html
+        - [ ] https://docs.pytorch.org/rl/stable/reference/generated/torchrl.envs.ParallelEnv.html#torchrl.envs.ParallelEnv
+        - [ ] Test with multiple agents in regular and headless modes
+- [ ] Train the model
+    - [x] Implement the reward environment for learning running
+    - [x] Implement the reward environment for learning passing
+    - [x] Implement the reward environment for learning shooting
+    - [x] Behaviour cloning on provided model
+    - [ ] Teach model to walk to ball
+    - [ ] Teach model to run to ball
+    - [ ] Teach model to kick to target (the following is the environment ordered from easiest to most difficult):
+        - [ ] PenaltyKick
+        - [ ] GoaliePenaltyKick
+        - [ ] ObstaclePenaltyKick
+        - [ ] KickToTarget
+- [ ] Submit model to competition and fine-tune

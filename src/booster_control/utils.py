@@ -5,11 +5,11 @@ SCALE_FACTOR = 25.0
 GOALKEEPER_WIDTH = 0.5
 
 # Constants (adapted from booster_control/t1_utils.py)
-DEFAULT_DOF_POS = torch.tensor([-0.2, 0.0, 0.0, 0.4, -0.25, 0.0, -0.2, 0.0, 0.0, 0.4, -0.25, 0.0], dtype=torch.float32)
-DOF_STIFFNESS = torch.tensor([200.0, 200.0, 200.0, 200.0, 50.0, 50.0, 200.0, 200.0, 200.0, 200.0, 50.0, 50.0], dtype=torch.float32)
-DOF_DAMPING = torch.tensor([5.0, 5.0, 5.0, 5.0, 1.0, 1.0, 5.0, 5.0, 5.0, 5.0, 1.0, 1.0], dtype=torch.float32)
-CTRL_MIN = torch.tensor([-45, -45, -30, -65, -24, -15, -45, -45, -30, -65, -24, -15], dtype=torch.float32)
-CTRL_MAX = torch.tensor([45, 45, 30, 65, 24, 15, 45, 45, 30, 65, 24, 15], dtype=torch.float32)
+DEFAULT_DOF_POS = torch.tensor([-0.2, 0.0, 0.0, 0.4, -0.25, 0.0, -0.2, 0.0, 0.0, 0.4, -0.25, 0.0], dtype=torch.float32, device=0)
+DOF_STIFFNESS = torch.tensor([200.0, 200.0, 200.0, 200.0, 50.0, 50.0, 200.0, 200.0, 200.0, 200.0, 50.0, 50.0], dtype=torch.float32, device=0)
+DOF_DAMPING = torch.tensor([5.0, 5.0, 5.0, 5.0, 1.0, 1.0, 5.0, 5.0, 5.0, 5.0, 1.0, 1.0], dtype=torch.float32, device=0)
+CTRL_MIN = torch.tensor([-45, -45, -30, -65, -24, -15, -45, -45, -30, -65, -24, -15], dtype=torch.float32, device=0)
+CTRL_MAX = torch.tensor([45, 45, 30, 65, 24, 15, 45, 45, 30, 65, 24, 15], dtype=torch.float32, device=0)
 
 
 def joint_velocities_to_actions(obs: torch.tensor, actions: torch.tensor) -> torch.tensor:

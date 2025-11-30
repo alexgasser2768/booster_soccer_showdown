@@ -29,6 +29,11 @@ class EnvironmentTorch(Environment, EnvBase):
         self._make_spec()
 
     def _step(self, tensordict: TensorDictBase) -> TensorDictBase:
+        if torch.isinf(tensordict["observation"]).any() or torch.isnan(tensordict["observation"]).any():
+            raise ValueError("Observation contains inf or nan values.")
+        if torch.isinf(tensordict["action"]).any() or torch.isnan(tensordict["action"]).any():
+            print(tensordict["action"])
+            raise ValueError("Observation contains inf or nan values.")
         action = joint_velocities_to_actions(tensordict["observation"], tensordict["action"])
         action = action.cpu().numpy()
 
@@ -40,7 +45,7 @@ class EnvironmentTorch(Environment, EnvBase):
 
         terminated_t = torch.tensor(terminated, dtype=torch.bool, device=self.device).reshape(1)
         truncated_t = torch.tensor(truncated, dtype=torch.bool, device=self.device).reshape(1)
-        done_t = terminated_t | truncated_t 
+        done_t = terminated_t | truncated_t
         next_observation_t = obs.squeeze(0).to(self.device)
 
         # Create the output tensordict
@@ -76,7 +81,7 @@ class EnvironmentTorch(Environment, EnvBase):
 
         return TensorDict(
             {
-                "observation": obs.squeeze(0).to(self.device), 
+                "observation": obs.squeeze(0).to(self.device),
                 "done": torch.tensor(False, dtype=torch.bool, device=self.device),
                 "terminated": torch.tensor(False, dtype=torch.bool, device=self.device),
                 "truncated": torch.tensor(False, dtype=torch.bool, device=self.device),
@@ -92,7 +97,7 @@ class EnvironmentTorch(Environment, EnvBase):
         # Get a sample agent input to determine the shape
         obs = super().reset()
         self.close()  # Close the env opened for spec creation
-        
+
         # Determine the shape from the agent_input
         obs_shape = tuple(obs.squeeze(0).shape)
 

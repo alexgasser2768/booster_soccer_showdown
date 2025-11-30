@@ -46,16 +46,17 @@ class PPOTrainer:
             env,
             Compose(
                 # normalize observations
-                ObservationNorm(
-                    in_keys=["observation"],
-                ),
+                # ObservationNorm(
+                #     in_keys=["observation"],
+                # ),
                 DoubleToFloat(),
                 StepCounter(),
             ),
         )
-        self.env.transform[0].init_stats(num_iter=1000, reduce_dim=0, cat_dim=0)
+        # self.env.transform[0].init_stats(num_iter=1000, reduce_dim=0, cat_dim=0)
+        # print(self.env.rollout(10))
 
-        self.device =self.env.device
+        self.device = self.env.device
 
         self.max_grad_norm = max_grad_norm
 
@@ -73,6 +74,7 @@ class PPOTrainer:
             n_actions=n_actions
         )
         self.agent.loadWeights(f"{self.weight_dir}/{weight_file}")
+        self.agent = self.agent.to(self.device)
 
         self.policy_module = ProbabilisticActor(
             module=TensorDictModule(
@@ -102,10 +104,16 @@ class PPOTrainer:
             total_frames=total_frames,
             split_trajs=False,
             device=self.device,
+            storing_device=self.device,
+            policy_device=self.device,
+            env_device=self.device
         )
 
         self.replay_buffer = ReplayBuffer(
-            storage=LazyTensorStorage(max_size=frames_per_batch),
+            storage=LazyTensorStorage(
+                max_size=frames_per_batch,
+                device=self.device,
+            ),
             sampler=SamplerWithoutReplacement(),
         )
 
@@ -125,6 +133,7 @@ class PPOTrainer:
             entropy_coef=entropy_eps,
             critic_coef=1.0,
             loss_critic_type="smooth_l1",
+            device=self.device
         )
 
         self.optim = torch.optim.Adam(
@@ -158,9 +167,6 @@ class PPOTrainer:
 
                     # Optimization: backward, grad clipping and optimization step
                     loss_value.backward()
-                    for name, param in self.loss_module.named_parameters():
-                        if param.grad is not None and (torch.isnan(param.grad).any() or torch.isinf(param.grad).any()):
-                            print(f"NaN/Inf gradient detected in {name}")
                     # this is not strictly mandatory but it's good practice to keep
                     # your gradient norm bounded
                     torch.nn.utils.clip_grad_norm_(self.loss_module.parameters(), self.max_grad_norm)
@@ -204,11 +210,11 @@ class PPOTrainer:
             self.scheduler.step()
 
     def train(self):
-        try:
+        # try:
             self._train()
-        except (KeyboardInterrupt, Exception) as e:
-            logger.error(f"Training stopped due to the following exception: {e}")
-        finally:
-            self.agent.saveWeights(self.weight_dir, prefix=self.prefix)
+        # except (KeyboardInterrupt, Exception) as e:
+            # logger.error(f"Training stopped due to the following exception: {e}")
+        # finally:
+            # self.agent.saveWeights(self.weight_dir, prefix=self.prefix)
 
 

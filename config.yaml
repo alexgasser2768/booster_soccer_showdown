@@ -45,9 +45,9 @@ ppo:  # Proximal Policy Optimization settings
   lmbda: 0.95       # GAE factor
   entropy_eps: 0.0001      # Entropy coeff
   value_loss_coeff: 0.5    # Value Loss Coeff
-  max_grad_norm: 1.0
+  max_grad_norm: 1.0       # Max gradient norm for clipping
   learning_rate: 0.0005               # Learning rate
-  total_frames: 100000
-  frames_per_batch: 1000
+  total_frames: 10000
+  frames_per_batch: 100
   weight_file: behavior_cloning-1764498522.4837887.pt
   file_prefix: PPO

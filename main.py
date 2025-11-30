@@ -9,30 +9,6 @@ logger = logging.getLogger(__name__)
 
 
 if __name__ == "__main__":
-    # env = WalkToBallEnv(headless=True)
-    # trainer = PPOTrainer(
-    #     env=env,
-    #     n_states=52,
-    #     n_actions=12,
-    #     lr=0.0001,
-    #     max_grad_norm = 1.0,
-    #     frames_per_batch = 1000,
-    #     total_frames = 50_000,
-    #     sub_batch_size = 64,
-    #     num_epochs = 10,
-    #     clip_epsilon=0.2,
-    #     gamma = 0.99,
-    #     lmbda = 0.95,
-    #     entropy_eps = 1e-4,
-    #     weight_dir="weights/",
-    #     weight_file="behavior_cloning-1764439282.0633442.pt",
-    #     prefix="PPO"
-    # )
-
-    # trainer.train()
-
-    # exit()
-
     with open("./config.yaml", "r") as f:
         config = yaml.safe_load(f)
 
@@ -99,6 +75,7 @@ if __name__ == "__main__":
         epochs = config['behavior_cloning']['epochs']
         learning_rate = config['behavior_cloning']['learning_rate']
         file_prefix = config['behavior_cloning']['file_prefix']
+        weight_file = config['behavior_cloning']['weight_file']
 
         behavior_cloning(
             data_files=[f"{dataset_directory}/{data_file}" for data_file in data_files],
@@ -108,7 +85,8 @@ if __name__ == "__main__":
             n_states=n_states,
             n_actions=n_actions,
             model_weights_directory=weights_directory,
-            model_weights_prefix=file_prefix
+            model_weights_prefix=file_prefix,
+            model_weights_file=weight_file,
         )
 
     if config['ppo']['enabled']:
@@ -129,7 +107,7 @@ if __name__ == "__main__":
         weight_file = config['ppo']['weight_file']
         file_prefix = config['ppo']['file_prefix']
 
-        env = WalkToBallEnv()
+        env = WalkToBallEnv(headless=True)
         if task == "PenaltyKick":
             env = PenaltyKickEnv()
         elif task == "GoaliePenaltyKick":

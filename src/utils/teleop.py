@@ -29,7 +29,7 @@ def teleop(simulation: Environment, pos_sensitivity: float, rot_sensitivity: flo
         while collect_data:
             # Reset environment for new episode
             terminated, truncated = False, False
-            observation, info, model_input = simulation.reset()
+            observation, info = simulation.env.reset()
             keyboard_controller.reset()
 
             while not (terminated or truncated):
@@ -49,7 +49,7 @@ def teleop(simulation: Environment, pos_sensitivity: float, rot_sensitivity: flo
                     collect_data = False
                     break
 
-                observation, reward, terminated, truncated, info, model_input = simulation.step(ctrl)
+                observation, reward, terminated, truncated, info = simulation.env.step(ctrl)
 
                 if terminated or truncated:
                     break

@@ -1,24 +1,21 @@
 import logging, warnings
 from collections import defaultdict
 
-import matplotlib.pyplot as plt
 import torch
-from torch import multiprocessing
 from tensordict.nn import TensorDictModule
-from tensordict.nn.distributions import NormalParamExtractor
-from torch import nn
 from torchrl.collectors import SyncDataCollector
 from torchrl.data.replay_buffers import ReplayBuffer
 from torchrl.data.replay_buffers.samplers import SamplerWithoutReplacement
 from torchrl.data.replay_buffers.storages import LazyTensorStorage
 from torchrl.envs import (Compose, DoubleToFloat, ObservationNorm, StepCounter,
                           TransformedEnv)
-from torchrl.envs.libs.gym import GymEnv
-from torchrl.envs.utils import check_env_specs, ExplorationType, set_exploration_type
+from torchrl.envs.utils import ExplorationType, set_exploration_type
 from torchrl.modules import ProbabilisticActor, TanhNormal, ValueOperator
 from torchrl.objectives import ClipPPOLoss
 from torchrl.objectives.value import GAE
+
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
@@ -145,7 +142,7 @@ class PPOTrainer:
 
         # We iterate over the collector until it reaches the total number of frames it was
         # designed to collect:
-        for i, tensordict_data in enumerate(tqdm(self.collector, total=self.total_frames)):
+        for i, tensordict_data in enumerate(tqdm(self.collector, total=self.total_frames // self.frames_per_batch)):
             # we now have a batch of data to work with. Let's learn something from it.
             for _ in range(self.num_epochs):
                 # We'll need an "advantage" signal to make PPO work.
@@ -161,6 +158,9 @@ class PPOTrainer:
 
                     # Optimization: backward, grad clipping and optimization step
                     loss_value.backward()
+                    for name, param in self.loss_module.named_parameters():
+                        if param.grad is not None and (torch.isnan(param.grad).any() or torch.isinf(param.grad).any()):
+                            print(f"NaN/Inf gradient detected in {name}")
                     # this is not strictly mandatory but it's good practice to keep
                     # your gradient norm bounded
                     torch.nn.utils.clip_grad_norm_(self.loss_module.parameters(), self.max_grad_norm)

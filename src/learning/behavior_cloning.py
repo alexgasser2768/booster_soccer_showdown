@@ -13,7 +13,7 @@ from ..booster_control import create_input_vector
 logger = logging.getLogger(__name__)
 
 
-def behavior_cloning(data_files: str, batch_size: int, epochs: int, learning_rate: float, n_states: int, n_actions: int, model_weights_directory: str, model_weights_prefix: str):
+def behavior_cloning(data_files: str, batch_size: int, epochs: int, learning_rate: float, n_states: int, n_actions: int, model_weights_directory: str, model_weights_prefix: str, model_weights_file: str):
     observations = None
     infos = None
     actions = None
@@ -43,6 +43,10 @@ def behavior_cloning(data_files: str, batch_size: int, epochs: int, learning_rat
     logger.info(f"Action Target Shape: {Y_train.shape} (Output)")
 
     model = Agent(n_states, n_actions)
+    try:
+        model.loadWeights(f"{model_weights_directory}/{model_weights_file}")
+    except:
+        pass
 
     # Setup loss and optimizer
     criterion = nn.MSELoss() # Mean Squared Error is standard for regression tasks like this

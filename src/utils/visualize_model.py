@@ -9,13 +9,13 @@ def visualize(simulation: Environment, weight_path: str, n_states: int, n_action
     while True:
         # Reset environment for new episode
         terminated, truncated = False, False
-        observation, info, model_input = simulation.reset()
+        model_input = simulation.reset()
 
         while not (terminated or truncated):
             ctrl = agent(model_input)
             ctrl = ctrl.detach().numpy().reshape((12, ))
 
-            observation, reward, terminated, truncated, info, model_input = simulation.step(ctrl)
+            model_input, reward, terminated, truncated = simulation.step(ctrl)
 
             if terminated or truncated:
                 break

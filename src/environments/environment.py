@@ -42,14 +42,15 @@ class Environment:
             self.is_closed = True
             self.close()
 
-        return observation, info, self.getAgentInput(info, observation)
+        return self.getAgentInput(info, observation)
 
     def getReward(self, info: dict) -> float:  # Placeholder for custom reward extraction
         return 0.0
 
     def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict, torch.Tensor]:
         observation, reward, terminated, truncated, info = self.env.step(action)
-        return observation, self.getReward(info), terminated, truncated, info, self.getAgentInput(info, observation)
+
+        return self.getAgentInput(info, observation), self.getReward(info), terminated, truncated
 
     def _close(self):
         try:

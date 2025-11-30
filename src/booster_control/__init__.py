@@ -1,1 +1,1 @@
-from .utils import create_input_vector
+from .utils import joint_velocities_to_actions, create_input_vector

@@ -5,6 +5,8 @@ from tensordict.nn.distributions import NormalParamExtractor
 import time
 from typing import Tuple
 
+from ..booster_control import joint_velocities_to_actions
+
 LAYER_SIZE = 256
 
 
@@ -29,6 +31,7 @@ class Agent(nn.Module):
         self.actor_head = nn.Sequential(
             self.shared_net,
             nn.Linear(LAYER_SIZE, 2*n_actions),
+            nn.Tanh(),
             NormalParamExtractor(),
         )
 
@@ -37,34 +40,9 @@ class Agent(nn.Module):
             nn.Linear(LAYER_SIZE, 1)
         )
 
-        # Constants (adapted from booster_control/t1_utils.py)
-        self.register_buffer("default_dof_pos", torch.tensor(
-            [-0.2, 0.0, 0.0, 0.4, -0.25, 0.0, -0.2, 0.0, 0.0, 0.4, -0.25, 0.0], dtype=torch.float32))
-        self.register_buffer("dof_stiffness", torch.tensor(
-            [200.0, 200.0, 200.0, 200.0, 50.0, 50.0, 200.0, 200.0, 200.0, 200.0, 50.0, 50.0], dtype=torch.float32))
-        self.register_buffer("dof_damping", torch.tensor(
-            [5.0, 5.0, 5.0, 5.0, 1.0, 1.0, 5.0, 5.0, 5.0, 5.0, 1.0, 1.0], dtype=torch.float32))
-        self.register_buffer("ctrl_min", torch.tensor(
-            [-45, -45, -30, -65, -24, -15, -45, -45, -30, -65, -24, -15], dtype=torch.float32))
-        self.register_buffer("ctrl_max", torch.tensor(
-            [45, 45, 30, 65, 24, 15, 45, 45, 30, 65, 24, 15], dtype=torch.float32))
-
     def forward(self, x) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         loc, scale = self.actor_head(x)  # location and scale
-
-        return loc
-
-        # # PD control + Clamp (adapted from booster_control/t1_utils.py)
-        # qpos = x[:, :12]
-        # qvel = x[:, 12:24]
-
-        # targets = self.default_dof_pos.expand(x.shape[0], -1) + loc
-        # ctrl = self.dof_stiffness * (targets - qpos) - self.dof_damping * qvel
-
-        # return torch.minimum(
-        #     torch.maximum(ctrl, self.ctrl_min.expand_as(ctrl)),
-        #     self.ctrl_max.expand_as(ctrl)
-        # )
+        return joint_velocities_to_actions(x, loc)
 
     def saveWeights(self, directory, prefix = "") -> str:
         name = f"{prefix}-{time.time()}.pt"

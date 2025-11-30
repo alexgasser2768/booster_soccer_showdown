@@ -19,13 +19,13 @@ teleop:  # Teleoperation data collection settings
 
 visualize:  # Visualization settings
   enabled: False
-  weight_file: behavior_cloning-1764458856.0050213.pt
+  weight_file: behavior_cloning-1764496680.031678.pt
 
 behavior_cloning:  # Supervised Imitation Learning settings
   enabled: False
   batch_size: 64
   epochs: 200
-  learning_rate: 0.001
+  learning_rate: 0.0005
   data_files:
     - teleop_data-1764112264.3227012.npz
     - part_1.npz
@@ -33,11 +33,12 @@ behavior_cloning:  # Supervised Imitation Learning settings
     - part_3.npz
     - part_4.npz
   file_prefix: behavior_cloning
+  weight_file: behavior_cloning-1764498522.4837887.pt
 
 ppo:  # Proximal Policy Optimization settings
   enabled: True
   task: WalkToBall  # WalkToBall, PenaltyKick, GoaliePenaltyKick, ObstaclePenaltyKick, KickToTarget
-  epochs: 50         # Number of times to update the policy using the collected data
+  epochs: 1000         # Number of times to update the policy using the collected data
   batch_size: 64     # Size of mini-batch for gradient descent
   clip_epsilon: 0.2      # Clipping parameter (epsilon)
   gamma: 0.99            # Discount factor
@@ -48,5 +49,5 @@ ppo:  # Proximal Policy Optimization settings
   learning_rate: 0.0005               # Learning rate
   total_frames: 100000
   frames_per_batch: 1000
-  weight_file: behavior_cloning-1764458856.0050213.pt
+  weight_file: behavior_cloning-1764498522.4837887.pt
   file_prefix: PPO

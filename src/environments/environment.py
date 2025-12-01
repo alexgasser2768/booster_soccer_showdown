@@ -45,7 +45,7 @@ class Environment:
         return self.getAgentInput(observation, info)
 
     def getReward(self, obs: np.array, info: dict) -> float:  # Placeholder for custom reward extraction
-        return -np.sum(SIGMOID(obs[12:24]))  # Return the negative absolute sum of the velocities
+        return -np.sum(np.abs(obs[12:24]))  # Return the negative absolute sum of the velocities
 
     def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict, torch.Tensor]:
         observation, reward, terminated, truncated, info = self.env.step(action)

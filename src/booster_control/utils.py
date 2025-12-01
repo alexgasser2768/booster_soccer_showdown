@@ -7,6 +7,8 @@ DEVICE = (
     else torch.device("cpu")
 )
 
+SIGMOID = lambda x: 1 / (1 + np.exp(-x))
+
 SCALE_FACTOR = 25.0
 GOALKEEPER_WIDTH = 0.5
 

@@ -39,8 +39,6 @@ class EnvironmentTorch(Environment, EnvBase):
 
         # Convert to tensors
         reward_t = torch.tensor(reward, dtype=torch.float32, device=self.device).reshape(1)
-        reward_t -= torch.sum(torch.abs(tensordict["action"]))  # Encourage the agent to generate smooth velocities
-
         terminated_t = torch.tensor(terminated, dtype=torch.bool, device=self.device).reshape(1)
         truncated_t = torch.tensor(truncated, dtype=torch.bool, device=self.device).reshape(1)
         done_t = terminated_t | truncated_t

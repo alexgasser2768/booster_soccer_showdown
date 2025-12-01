@@ -132,22 +132,30 @@ class PPOTrainer:
         )
 
         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            self.optim, total_frames // frames_per_batch, 0.0
+            self.optim, total_frames // frames_per_batch, 0.0001
         )
+
+    def _logData(self, logs: defaultdict):
+        cum_reward_str = f"average reward={logs['reward'][-1]: 4.4f} (init={logs['reward'][0]: 4.4f})"
+        stepcount_str = f"step count (max): {logs['step_count'][-1]}"
+        lr_str = f"lr policy: {logs['lr'][-1]: 4.4f}"
+
+        eval_str = (
+            f"eval average reward: {logs['eval reward'][-1]: 4.4f} "
+            f"eval cumulative reward: {logs['eval reward (sum)'][-1]: 4.4f} "
+            f"(init: {logs['eval reward (sum)'][0]: 4.4f}), "
+            f"eval step-count: {logs['eval step_count'][-1]}"
+        )
+
+        logger.info(", ".join([cum_reward_str, stepcount_str, lr_str, eval_str]))
 
     def _train(self) -> defaultdict:
         logs = defaultdict(list)
-        eval_str = ""
 
-        # We iterate over the collector until it reaches the total number of frames it was
-        # designed to collect:
-        for i, tensordict_data in enumerate(tqdm(self.collector, total=self.total_frames // self.frames_per_batch)):
-            # we now have a batch of data to work with. Let's learn something from it.
+        for _, tensordict_data in enumerate(tqdm(self.collector, total=self.total_frames // self.frames_per_batch)):
             for _ in range(self.num_epochs):
-                # We'll need an "advantage" signal to make PPO work.
-                # We re-compute it at each epoch as its value depends on the value
-                # network which is updated in the inner loop.
-                self.advantage_module(tensordict_data)
+                self.advantage_module(tensordict_data)  # The advantage signal depends on the value network trained below
+
                 data_view = tensordict_data.reshape(-1)
                 self.replay_buffer.extend(data_view.cpu())
                 for _ in range(self.frames_per_batch // self.sub_batch_size):
@@ -157,46 +165,25 @@ class PPOTrainer:
 
                     # Optimization: backward, grad clipping and optimization step
                     loss_value.backward()
-                    # this is not strictly mandatory but it's good practice to keep
-                    # your gradient norm bounded
                     torch.nn.utils.clip_grad_norm_(self.loss_module.parameters(), self.max_grad_norm)
                     self.optim.step()
                     self.optim.zero_grad()
 
             logs["reward"].append(tensordict_data["next", "reward"].mean().item())
-
-            cum_reward_str = f"average reward={logs['reward'][-1]: 4.4f} (init={logs['reward'][0]: 4.4f})"
-
             logs["step_count"].append(tensordict_data["step_count"].max().item())
-            stepcount_str = f"step count (max): {logs['step_count'][-1]}"
             logs["lr"].append(self.optim.param_groups[0]["lr"])
-            lr_str = f"lr policy: {logs['lr'][-1]: 4.4f}"
-            if i % 10 == 0:
-                # We evaluate the policy once every 10 batches of data.
-                # Evaluation is rather simple: execute the policy without exploration
-                # (take the expected value of the action distribution) for a given
-                # number of steps (1000, which is our ``env`` horizon).
-                # The ``rollout`` method of the ``env`` can take a policy as argument:
-                # it will then execute this policy at each step.
-                with set_exploration_type(ExplorationType.DETERMINISTIC), torch.no_grad():
-                    # execute a rollout with the trained policy
-                    eval_rollout = self.env.rollout(1000, self.policy_module)
-                    logs["eval reward"].append(eval_rollout["next", "reward"].mean().item())
-                    logs["eval reward (sum)"].append(
-                        eval_rollout["next", "reward"].sum().item()
-                    )
-                    logs["eval step_count"].append(eval_rollout["step_count"].max().item())
-                    eval_str = (
-                        f"eval cumulative reward: {logs['eval reward (sum)'][-1]: 4.4f} "
-                        f"(init: {logs['eval reward (sum)'][0]: 4.4f}), "
-                        f"eval step-count: {logs['eval step_count'][-1]}"
-                    )
-                    del eval_rollout
 
-            logger.info(", ".join([eval_str, cum_reward_str, stepcount_str, lr_str]))
+            with set_exploration_type(ExplorationType.DETERMINISTIC), torch.no_grad():
+                # execute a rollout with the trained policy
+                eval_rollout = self.env.rollout(1000, self.policy_module)
 
-            # We're also using a learning rate scheduler. Like the gradient clipping,
-            # this is a nice-to-have but nothing necessary for PPO to work.
+                logs["eval reward"].append(eval_rollout["next", "reward"].mean().item())
+                logs["eval reward (sum)"].append(eval_rollout["next", "reward"].sum().item())
+                logs["eval step_count"].append(eval_rollout["step_count"].max().item())
+
+                del eval_rollout
+
+            self._logData(logs)
             self.scheduler.step()
 
         return logs

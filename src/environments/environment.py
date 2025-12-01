@@ -6,7 +6,7 @@ import sai_mujoco  # noqa: F401
 import gymnasium as gym
 import torch
 
-from ..booster_control import create_input_vector
+from ..booster_control import SIGMOID, create_input_vector
 
 
 class Environment:
@@ -27,7 +27,7 @@ class Environment:
 
         glfw.set_key_callback(self._window, self._quit)
 
-    def getAgentInput(self, info: dict, observation: np.ndarray) -> torch.Tensor:
+    def getAgentInput(self, observation: np.ndarray, info: dict) -> torch.Tensor:
         return torch.tensor(create_input_vector(info, observation[:24]).reshape(1, -1), dtype=torch.float32)
 
     def reset(self) -> tuple[np.ndarray, dict, torch.Tensor]:
@@ -42,15 +42,15 @@ class Environment:
             self.is_closed = True
             self.close()
 
-        return self.getAgentInput(info, observation)
+        return self.getAgentInput(observation, info)
 
-    def getReward(self, info: dict) -> float:  # Placeholder for custom reward extraction
-        return 0.0
+    def getReward(self, obs: np.array, info: dict) -> float:  # Placeholder for custom reward extraction
+        return -np.sum(SIGMOID(obs[12:24]))  # Return the negative absolute sum of the velocities
 
     def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict, torch.Tensor]:
         observation, reward, terminated, truncated, info = self.env.step(action)
 
-        return self.getAgentInput(info, observation), self.getReward(info), terminated, truncated
+        return self.getAgentInput(observation, info), self.getReward(observation, info), terminated, truncated
 
     def _close(self):
         try:

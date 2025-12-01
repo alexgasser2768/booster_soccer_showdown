@@ -1,7 +1,7 @@
 # Humanoid Soccer Learning Task
 
 This project was inspired by the SAI humanoid robot competition. The goal is to teach the Booster T1 robot how
-to score goals in a simulated environment. The 
+to score goals in a simulated environment. 
 
 # Reward Structure
 

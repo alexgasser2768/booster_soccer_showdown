@@ -1,1 +1,1 @@
-from .utils import DEVICE, joint_velocities_to_actions, create_input_vector
+from .utils import DEVICE, SIGMOID, joint_velocities_to_actions, create_input_vector

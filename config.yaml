@@ -49,5 +49,5 @@ ppo:  # Proximal Policy Optimization settings
   learning_rate: 0.0005               # Learning rate
   total_frames: 1000000
   frames_per_batch: 1000
-  weight_file: BC-1764694171.3164234.pt
+  weight_file: PPO-1764705643.4979937.pt
   file_prefix: PPO

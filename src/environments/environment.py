@@ -59,6 +59,10 @@ class Environment:
         reward = self.getReward(observation, info)
         if terminated and not info['success']:  # Terminated = dead or success, Truncated = episode done
             reward -= 1_000_000
+        elif terminated and info['success']:
+            logger.info("Success!")
+        elif truncated:
+            logger.info("Episode done!")
 
         return self.getAgentInput(observation, info), reward, terminated, truncated
 

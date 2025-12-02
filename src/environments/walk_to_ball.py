@@ -9,6 +9,6 @@ class WalkToBallEnv(EnvironmentTorch):
 
     def getReward(self, obs: np.array, info: dict) -> float:
         reward = super().getReward(obs, info)
-        return 1000 + reward
+        return reward
         reward -= np.linalg.norm(info['ball_xpos_rel_robot'])
         return 1000 + reward # Penalty for each step to encourage faster goals

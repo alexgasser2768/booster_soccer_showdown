@@ -1,3 +1,5 @@
+import logging, warnings
+
 import numpy as np
 import torch
 from tensordict import TensorDict, TensorDictBase
@@ -7,6 +9,9 @@ from torchrl.envs import EnvBase
 
 from .environment import Environment
 from ..booster_control import DEVICE, joint_velocities_to_actions
+
+warnings.filterwarnings("ignore")
+logger = logging.getLogger(__name__)
 
 
 class EnvironmentTorch(Environment, EnvBase):
@@ -32,10 +37,20 @@ class EnvironmentTorch(Environment, EnvBase):
         if torch.any(torch.abs(tensordict["action"]) > 1):
             raise ValueError("Action contains values outside [-1, 1].")
 
-        action = joint_velocities_to_actions(tensordict["observation"], tensordict["action"])
-        action = action.cpu().numpy()
+        actions = tensordict["action"][:12]
+        joint_pos_vel_pred = tensordict["action"][12:]
 
-        obs, reward, terminated, truncated = super().step(action)
+        actions = joint_velocities_to_actions(tensordict["observation"], actions)
+        actions = actions.cpu().numpy()
+
+        obs, reward, terminated, truncated = super().step(actions)
+
+        joint_pos_vel_true = torch.tensor(np.tanh(obs.reshape(-1)[:24]), dtype=torch.float32, device=self.device)
+
+        pred_loss = torch.norm(joint_pos_vel_pred - joint_pos_vel_true)
+        reward -= pred_loss
+
+        logger.debug(f"Prediction Loss: {pred_loss}")
 
         # Convert to tensors
         reward_t = torch.tensor(reward, dtype=torch.float32, device=self.device).reshape(1)
@@ -109,7 +124,7 @@ class EnvironmentTorch(Environment, EnvBase):
         self.action_spec = Bounded(
             low=-1,
             high=1,
-            shape=self.env.action_space.shape,
+            shape=3*self.env.action_space.shape,
             device=self.device
         )
 

@@ -10,6 +10,6 @@ class ObstaclePenaltyKickEnv(EnvironmentTorch):
     def getReward(self, obs: np.array, info: dict) -> float:
         reward = super().getReward(obs, info)
         reward += -np.linalg.norm(info['ball_xpos_rel_robot'] - info['target_xpos_rel_robot'])
-        reward += 100.0 * int(info['success'])
+        reward += 1000.0 * int(info['success'])
 
         return reward - 1 # Penalty for each step to encourage faster goals

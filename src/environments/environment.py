@@ -1,12 +1,15 @@
 import numpy as np
 from typing import Literal
-import glfw
+import glfw, logging, warnings
 
 import sai_mujoco  # noqa: F401
 import gymnasium as gym
 import torch
 
 from ..booster_control import SIGMOID, create_input_vector
+
+warnings.filterwarnings("ignore")
+logger = logging.getLogger(__name__)
 
 
 class Environment:
@@ -45,12 +48,19 @@ class Environment:
         return self.getAgentInput(observation, info)
 
     def getReward(self, obs: np.array, info: dict) -> float:  # Placeholder for custom reward extraction
-        return -np.sum(np.abs(obs[12:24]))  # Return the negative absolute sum of the velocities
+        joint_velocity = np.sum(np.abs(obs[12:24]))
+        logger.debug(f"Joint Velocity Loss: {joint_velocity}")
+
+        return -joint_velocity  # Return the negative absolute sum of the velocities
 
     def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict, torch.Tensor]:
         observation, reward, terminated, truncated, info = self.env.step(action)
 
-        return self.getAgentInput(observation, info), self.getReward(observation, info), terminated, truncated
+        reward = self.getReward(observation, info)
+        if terminated and not info['success']:  # Terminated = dead or success, Truncated = episode done
+            reward -= 1_000_000
+
+        return self.getAgentInput(observation, info), reward, terminated, truncated
 
     def _close(self):
         try:

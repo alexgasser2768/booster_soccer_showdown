@@ -7,7 +7,7 @@ from typing import Tuple
 
 from ..booster_control import joint_velocities_to_actions
 
-LAYER_SIZE = 256
+LAYER_SIZE = 512
 
 
 class Agent(nn.Module):
@@ -17,6 +17,8 @@ class Agent(nn.Module):
         # Match the shared network architecture
         self.shared_net = nn.Sequential(
             nn.Linear(n_states, LAYER_SIZE),
+            nn.LeakyReLU(),
+            nn.Linear(LAYER_SIZE, LAYER_SIZE),
             nn.LeakyReLU(),
             nn.Linear(LAYER_SIZE, LAYER_SIZE),
             nn.LeakyReLU(),
@@ -42,7 +44,7 @@ class Agent(nn.Module):
 
     def forward(self, x) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         loc, scale = self.actor_head(x)  # location and scale
-        return joint_velocities_to_actions(x, loc)
+        return torch.hstack([joint_velocities_to_actions(x, loc[:, :12]), loc[:, 12:]])
 
     def saveWeights(self, directory, prefix = "") -> str:
         name = f"{prefix}-{time.time()}.pt"

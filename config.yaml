@@ -33,7 +33,7 @@ behavior_cloning:  # Supervised Imitation Learning settings
     - part_3.npz
     - part_4.npz
   file_prefix: BC
-  weight_file: BC.pt
+  weight_file: BC-1764713612.1273327.pt
 
 ppo:  # Proximal Policy Optimization settings
   enabled: True
@@ -49,5 +49,5 @@ ppo:  # Proximal Policy Optimization settings
   learning_rate: 0.0005               # Learning rate
   total_frames: 1000000
   frames_per_batch: 1000
-  weight_file: PPO-1764705643.4979937.pt
+  weight_file: BC-1764713612.1273327.pt
   file_prefix: PPO

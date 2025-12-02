@@ -19,6 +19,8 @@ def behavior_cloning(data_files: str, batch_size: int, epochs: int, learning_rat
     infos = None
     actions = None
 
+    logger.info(f"Device used for training: {DEVICE}")
+
     # Load the data
     for d_file in data_files:
         data = np.load(d_file, allow_pickle=True)

@@ -32,6 +32,10 @@ class Agent(nn.Module):
 
         self.actor_head = nn.Sequential(
             self.shared_net,
+            nn.Linear(LAYER_SIZE, LAYER_SIZE),
+            nn.LeakyReLU(),
+            nn.Linear(LAYER_SIZE, LAYER_SIZE),
+            nn.LeakyReLU(),
             nn.Linear(LAYER_SIZE, 2*n_actions),
             nn.Tanh(),
             NormalParamExtractor(),
@@ -39,7 +43,11 @@ class Agent(nn.Module):
 
         self.critic_head = nn.Sequential(
             self.shared_net,
-            nn.Linear(LAYER_SIZE, 1)
+            nn.Linear(LAYER_SIZE, LAYER_SIZE),
+            nn.LeakyReLU(),
+            nn.Linear(LAYER_SIZE, LAYER_SIZE),
+            nn.LeakyReLU(),
+            nn.Linear(LAYER_SIZE, 1),
         )
 
     def forward(self, x) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:

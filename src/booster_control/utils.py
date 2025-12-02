@@ -3,7 +3,7 @@ import numpy as np
 
 DEVICE = (
     torch.device(0)
-    if torch.cuda.is_available() and torch.multiprocessing.get_start_method() != "fork"
+    if torch.cuda.is_available()# and torch.multiprocessing.get_start_method() != "fork"
     else torch.device("cpu")
 )
 

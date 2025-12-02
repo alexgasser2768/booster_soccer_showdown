@@ -26,6 +26,8 @@ class EnvironmentTorch(Environment, EnvBase):
 
         self.device = DEVICE
 
+        logger.info(f"Device used for training: {DEVICE}")
+
         # We need to call _make_spec to initialize the specs
         self._make_spec()
 

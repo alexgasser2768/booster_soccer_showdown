@@ -6,7 +6,7 @@ import sai_mujoco  # noqa: F401
 import gymnasium as gym
 import torch
 
-from ..booster_control import SIGMOID, create_input_vector
+from ..booster_control import create_input_vector
 
 warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)

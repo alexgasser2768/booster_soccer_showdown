@@ -3,6 +3,12 @@
 This project was inspired by the SAI humanoid robot competition. The goal is to teach the Booster T1 robot how
 to score goals in a simulated environment. 
 
+# Run on GPU server
+
+```
+xvfb-run -a python main.py
+```
+
 # Reward Structure
 
 As a rule of thumb, each episode is 10 seconds unless mentioned otherwise.

@@ -139,25 +139,58 @@ if __name__ == "__main__":
         data = trainer.train()
 
         if data is not None:
-            plt.figure(figsize=(10, 10))
+            plt.figure(figsize=(15, 25)) 
 
-            plt.subplot(2, 2, 1)
+            plt.subplot(4, 2, 1)
             plt.plot(data["reward"])
-            plt.title("training rewards (average)")
+            plt.title("Training Rewards (average)")
+            plt.xlabel("Episode/Iteration")
+            plt.ylabel("Reward")
 
-            plt.subplot(2, 2, 2)
+            plt.subplot(4, 2, 2)
             plt.plot(data["step_count"])
-            plt.title("Max step count (training)")
+            plt.title("Max Step Count (training)")
+            plt.xlabel("Episode/Iteration")
+            plt.ylabel("Steps")
 
-            plt.subplot(2, 2, 3)
+            plt.subplot(4, 2, 3)
             plt.plot(data["eval reward (sum)"])
             plt.title("Return (test)")
+            plt.xlabel("Evaluation Run")
+            plt.ylabel("Return")
 
-            plt.subplot(2, 2, 4)
+            plt.subplot(4, 2, 4)
             plt.plot(data["eval step_count"])
-            plt.title("Max step count (test)")
+            plt.title("Max Step Count (test)")
+            plt.xlabel("Evaluation Run")
+            plt.ylabel("Steps")
+
+            plt.subplot(4, 2, 5)
+            plt.plot(data["loss_objective"])
+            plt.title("Policy Objective Loss")
+            plt.xlabel("Optimization Step/Batch")
+            plt.ylabel("Loss Value")
+
+            plt.subplot(4, 2, 6)
+            plt.plot(data["loss_critic"])
+            plt.title("Critic (Value) Loss")
+            plt.xlabel("Optimization Step/Batch")
+            plt.ylabel("Loss Value")
+
+            plt.subplot(4, 2, 7)
+            plt.plot(data["loss_entropy"])
+            plt.title("Entropy Loss")
+            plt.xlabel("Optimization Step/Batch")
+            plt.ylabel("Loss Value")
+
+            plt.subplot(4, 2, 8)
+            plt.plot(data["loss_auxiliary"])
+            plt.title("Auxiliary Loss")
+            plt.xlabel("Optimization Step/Batch")
+            plt.ylabel("Loss Value")
 
             plt.tight_layout()
+
             plt.savefig(f"{logging_directory}/plots/PPO_{time.time()}.jpg")
             plt.close('all')
 

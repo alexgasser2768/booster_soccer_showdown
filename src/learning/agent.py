@@ -5,7 +5,7 @@ from tensordict.nn.distributions import NormalParamExtractor
 import time
 from typing import Tuple
 
-from ..booster_control import joint_velocities_to_actions
+from ..booster_control import DEVICE, joint_velocities_to_actions
 
 LAYER_SIZE = 512
 
@@ -71,4 +71,4 @@ class Agent(nn.Module):
         return name
 
     def loadWeights(self, path):
-        self.load_state_dict(torch.load(path))
+        self.load_state_dict(torch.load(path, map_location=DEVICE))

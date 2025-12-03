@@ -11,11 +11,14 @@ from ..booster_control import create_input_vector
 warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
 
+MAX_ABSOLUTE_REWARD = 1_000
+
 
 class Environment:
     def __init__(self, env_name: Literal["LowerT1KickToTarget-v0", "LowerT1GoaliePenaltyKick-v0", "LowerT1ObstaclePenaltyKick-v0", "LowerT1PenaltyKick-v0"], headless: bool = False, max_episodes: int = 1000):
         self.episode_count = 0
         self.max_episodes = max_episodes
+        self.max_reward = MAX_ABSOLUTE_REWARD
 
         # Render modes are 'human', 'rgb_array', 'depth_array', 'rgbd_tuple' (for headless, use anything but 'human')
         if headless:
@@ -48,21 +51,20 @@ class Environment:
         return self.getAgentInput(observation, info)
 
     def getReward(self, obs: np.array, info: dict) -> float:  # Placeholder for custom reward extraction
-        joint_velocity = np.sum(np.abs(obs[12:24]))
-        logger.debug(f"Joint Velocity Loss: {joint_velocity}")
+        return -np.sum(np.abs(obs[12:24]))  # Return the negative absolute sum of the velocities
 
-        return -joint_velocity  # Return the negative absolute sum of the velocities
-
-    def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict, torch.Tensor]:
+    def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool]:
         observation, reward, terminated, truncated, info = self.env.step(action)
 
         reward = self.getReward(observation, info)
         if terminated and not info['success']:  # Terminated = dead or success, Truncated = episode done
-            reward -= 1_000_000
+            reward = -self.max_reward
         elif terminated and info['success']:
             logger.info("Success!")
         elif truncated:
             logger.info("Episode done!")
+
+        reward = np.clip(reward, -self.max_reward, self.max_reward) / self.max_reward
 
         return self.getAgentInput(observation, info), reward, terminated, truncated
 

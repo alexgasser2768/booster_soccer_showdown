@@ -39,20 +39,10 @@ class EnvironmentTorch(Environment, EnvBase):
         if torch.any(torch.abs(tensordict["action"]) > 1):
             raise ValueError("Action contains values outside [-1, 1].")
 
-        actions = tensordict["action"][:12]
-        joint_pos_vel_pred = tensordict["action"][12:]
-
-        actions = joint_velocities_to_actions(tensordict["observation"], actions)
+        actions = joint_velocities_to_actions(tensordict["observation"], tensordict["action"])
         actions = actions.cpu().numpy()
 
         obs, reward, terminated, truncated = super().step(actions)
-
-        joint_pos_vel_true = torch.tensor(np.tanh(obs.reshape(-1)[:24]), dtype=torch.float32, device=self.device)
-
-        pred_loss = torch.norm(joint_pos_vel_pred - joint_pos_vel_true)
-        reward -= pred_loss
-
-        logger.debug(f"Prediction Loss: {pred_loss}")
 
         # Convert to tensors
         reward_t = torch.tensor(reward, dtype=torch.float32, device=self.device).reshape(1)
@@ -126,7 +116,7 @@ class EnvironmentTorch(Environment, EnvBase):
         self.action_spec = Bounded(
             low=-1,
             high=1,
-            shape=3*self.env.action_space.shape,
+            shape=self.env.action_space.shape,
             device=self.device
         )
 

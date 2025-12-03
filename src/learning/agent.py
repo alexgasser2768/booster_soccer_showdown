@@ -30,12 +30,25 @@ class Agent(nn.Module):
             nn.LeakyReLU(),
         )
 
-        self.actor_head = nn.Sequential(
+        # The following network is to learn an embedding that can be
+        # used to both infer joint state (FK) and optimal action (IK). After all,
+        # the next joint position and velocity depends on the action taken
+        self.actor_shared = nn.Sequential(
             self.shared_net,
             nn.Linear(LAYER_SIZE, LAYER_SIZE),
             nn.LeakyReLU(),
             nn.Linear(LAYER_SIZE, LAYER_SIZE),
             nn.LeakyReLU(),
+        )
+
+        self.auxiliary_head = nn.Sequential(  # For predicting joint positions and velocities (FK)
+            self.actor_shared,
+            nn.Linear(LAYER_SIZE, 2*n_actions),
+            nn.Tanh(),
+        )
+
+        self.actor_head = nn.Sequential(  # For deciding the action outputs (IK)
+            self.actor_shared,
             nn.Linear(LAYER_SIZE, 2*n_actions),
             nn.Tanh(),
             NormalParamExtractor(),
@@ -45,14 +58,12 @@ class Agent(nn.Module):
             self.shared_net,
             nn.Linear(LAYER_SIZE, LAYER_SIZE),
             nn.LeakyReLU(),
-            nn.Linear(LAYER_SIZE, LAYER_SIZE),
-            nn.LeakyReLU(),
             nn.Linear(LAYER_SIZE, 1),
         )
 
-    def forward(self, x) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(self, x) -> Tuple[torch.Tensor, torch.Tensor]:
         loc, scale = self.actor_head(x)  # location and scale
-        return torch.hstack([joint_velocities_to_actions(x, loc[:, :12]), loc[:, 12:]])
+        return joint_velocities_to_actions(x, loc), self.auxiliary_head(x)
 
     def saveWeights(self, directory, prefix = "") -> str:
         name = f"{prefix}-{time.time()}.pt"

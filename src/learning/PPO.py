@@ -70,6 +70,12 @@ class PPOTrainer:
 
         self.agent = self.agent.to(self.device)
 
+        self.prediction_module = TensorDictModule(
+            self.agent.auxiliary_head,
+            in_keys=["observation"],
+            out_keys=["state_prediction"]
+        )
+
         self.policy_module = ProbabilisticActor(
             module=TensorDictModule(
                 self.agent.actor_head,
@@ -119,6 +125,8 @@ class PPOTrainer:
             device=self.device,
         )
 
+        self.aux_loss_fn = torch.nn.MSELoss()
+
         self.loss_module = ClipPPOLoss(
             actor_network=self.policy_module,
             critic_network=self.value_module,
@@ -144,28 +152,51 @@ class PPOTrainer:
         stepcount_str = f"step count (max): {logs['step_count'][-1]}"
         cum_reward_str = f"cumulative reward (max): {logs['reward'][-1] * logs['step_count'][-1]:4.4f}"
         lr_str = f"lr policy: {logs['lr'][-1]:4.4f}"
+        loss_str = f"loss_objective: {logs['loss_objective'][-1]:4.4f}, loss_critic: {logs['loss_critic'][-1]:4.4f}, loss_entropy: {logs['loss_entropy'][-1]:4.4f}, loss_auxiliary: {logs['loss_auxiliary'][-1]:4.4f}"
 
-        logger.info(", ".join([avg_reward_str, stepcount_str, cum_reward_str, lr_str]))
+        logger.info(", ".join([avg_reward_str, stepcount_str, cum_reward_str, lr_str, loss_str]))
 
     def _train(self) -> defaultdict:
         logs = defaultdict(list)
 
         for _, tensordict_data in enumerate(tqdm(self.collector, total=self.total_frames // self.frames_per_batch)):
+            loss_obj, loss_critic, loss_entropy, loss_aux = 0, 0, 0, 0
+
             for _ in range(self.num_epochs):
                 self.advantage_module(tensordict_data)  # The advantage signal depends on the value network trained below
 
                 data_view = tensordict_data.reshape(-1)
                 self.replay_buffer.extend(data_view.cpu())
+
                 for _ in range(self.frames_per_batch // self.sub_batch_size):
                     subdata = self.replay_buffer.sample(self.sub_batch_size)
+
+                    self.prediction_module(subdata)
+
+                    aux_target = subdata.get(("next", "observation"))[:, :24]
+                    aux_prediction = subdata.get("state_prediction")
+
                     loss_vals = self.loss_module(subdata.to(self.device))
-                    loss_value = loss_vals["loss_objective"] + loss_vals["loss_critic"] + loss_vals["loss_entropy"]
+                    aux_loss = self.aux_loss_fn(aux_prediction.to(self.device), aux_target.to(self.device))
+
+                    loss_value = loss_vals["loss_objective"] + loss_vals["loss_critic"] + loss_vals["loss_entropy"] + aux_loss
 
                     # Optimization: backward, grad clipping and optimization step
                     loss_value.backward()
                     torch.nn.utils.clip_grad_norm_(self.loss_module.parameters(), self.max_grad_norm)
                     self.optim.step()
                     self.optim.zero_grad()
+
+                    loss_obj += loss_vals["loss_objective"].item()
+                    loss_critic += loss_vals["loss_critic"].item()
+                    loss_entropy += loss_vals["loss_entropy"].item()
+                    loss_aux += aux_loss.item()
+
+            n = self.num_epochs * self.frames_per_batch // self.sub_batch_size
+            logs["loss_objective"].append(loss_obj / n)
+            logs["loss_critic"].append(loss_critic / n)
+            logs["loss_entropy"].append(loss_entropy / n)
+            logs["loss_auxiliary"].append(loss_aux / n)
 
             logs["reward"].append(tensordict_data["next", "reward"].mean().item())
             logs["step_count"].append(tensordict_data["step_count"].max().item())

@@ -72,12 +72,16 @@ def behavior_cloning(data_files: str, batch_size: int, epochs: int, learning_rat
     logger.info("Starting Imitation Learning Training...")
     try:
         for epoch in tqdm(range(epochs)):
-            total_loss = 0
+            total_loss, total_action_loss, total_joint_loss = 0, 0, 0
 
             for batch_X, batch_Y in train_loader:
                 # Forward pass
-                predicted_actions = model(batch_X)
-                loss = criterion(predicted_actions, batch_Y)
+                predicted_actions, predicted_joints = model(batch_X)
+
+                action_loss = criterion(predicted_actions, batch_Y[:, :12])
+                joints_loss = criterion(predicted_joints, batch_Y[:, 12:])
+
+                loss = action_loss + joints_loss
 
                 # Backward and optimize
                 optimizer.zero_grad()
@@ -85,14 +89,21 @@ def behavior_cloning(data_files: str, batch_size: int, epochs: int, learning_rat
                 optimizer.step()
 
                 # Compute loss
+                total_action_loss += action_loss.item()
+                total_joint_loss += joints_loss.item()
                 total_loss += loss.item()
 
+            avg_action_loss = total_action_loss / len(train_loader)
+            avg_joint_loss = total_joint_loss / len(train_loader)
             avg_loss = total_loss / len(train_loader)
 
             test_predicted = model(X_test)
-            test_loss = criterion(test_predicted, Y_test).item()
+            test_loss = (
+                criterion(test_predicted[0], Y_test[:, :12]) + 
+                criterion(test_predicted[1], Y_test[:, 12:])
+            ).item()
 
-            logger.info(f"Epoch {epoch + 1}/{epochs}, Loss: {avg_loss:.6f}, Test Loss: {test_loss:.6f}")
+            logger.info(f"Epoch {epoch + 1}/{epochs}, Action Loss: {avg_action_loss:.6f}, Joint Loss: {avg_joint_loss:.6f}, Loss: {avg_loss:.6f}, Test Loss: {test_loss:.6f}")
     except KeyboardInterrupt:
         pass
 

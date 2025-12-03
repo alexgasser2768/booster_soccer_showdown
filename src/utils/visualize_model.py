@@ -12,8 +12,8 @@ def visualize(simulation: Environment, weight_path: str, n_states: int, n_action
         observation = simulation.reset()
 
         while not (terminated or truncated):
-            ctrl = agent(observation)
-            ctrl = ctrl.detach().numpy().reshape(-1)[:12]
+            ctrl, _ = agent(observation)
+            ctrl = ctrl.detach().numpy().reshape(-1)
 
             observation, _, terminated, truncated = simulation.step(ctrl)
 

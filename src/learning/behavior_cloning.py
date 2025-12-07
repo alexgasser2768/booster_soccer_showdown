@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 def behavior_cloning(data_files: str, batch_size: int, epochs: int, learning_rate: float, n_states: int, n_actions: int, model_weights_directory: str, model_weights_prefix: str, model_weights_file: str):
     observations = None
-    next_observations = None
     infos = None
     actions = None
 
@@ -25,22 +24,23 @@ def behavior_cloning(data_files: str, batch_size: int, epochs: int, learning_rat
     for d_file in data_files:
         data = np.load(d_file, allow_pickle=True)
 
-        observations = data["observations"][:-1, :24] if observations is None else np.concatenate([observations, data["observations"][:-1, :24]])
-        next_observations = data["observations"][1:, :24] if next_observations is None else np.concatenate([next_observations, data["observations"][1:, :24]])
-        infos = data["infos"][:-1] if infos is None else np.concatenate([infos, data["infos"][:-1]])
-        actions = data["actions"][:-1] if actions is None else np.concatenate([actions, data["actions"][:-1]])
+        observations = data["observations"][:, :24] if observations is None else np.concatenate([observations, data["observations"][:, :24]])
+        infos = data["infos"] if infos is None else np.concatenate([infos, data["infos"]])
+        actions = data["actions"] if actions is None else np.concatenate([actions, data["actions"]])
 
     if len(observations) == 0 or len(observations) != len(actions) or len(observations) != len(infos):
         logger.error(f"Empty or shape mismatch: (obs = {len(observations)}) (actions = {len(actions)}) (infos = {len(infos)})")
         return
 
+    model_states = np.array([create_input_vector(infos[i], observations[i]) for i in range(len(observations))])
+
     X = torch.tensor(
-        np.array([create_input_vector(infos[i], observations[i]) for i in range(len(observations))]),
+        model_states[:-1],
         dtype=torch.float32,
         device=DEVICE
     )
     Y = torch.tensor(
-        np.hstack([actions, np.tanh(next_observations)]),
+        np.hstack([actions[:-1], model_states[1:]]),
         dtype=torch.float32,
         device=DEVICE
     )

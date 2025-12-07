@@ -41,9 +41,9 @@ class Agent(nn.Module):
             nn.LeakyReLU(),
         )
 
-        self.auxiliary_head = nn.Sequential(  # For predicting joint positions and velocities (FK)
+        self.auxiliary_head = nn.Sequential(  # For predicting the next state (FK)
             self.actor_shared,
-            nn.Linear(LAYER_SIZE, 2*n_actions),
+            nn.Linear(LAYER_SIZE, n_states),
             nn.Tanh(),
         )
 

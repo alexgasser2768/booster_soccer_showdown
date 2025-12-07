@@ -173,7 +173,7 @@ class PPOTrainer:
 
                     self.prediction_module(subdata)
 
-                    aux_target = subdata.get(("next", "observation"))[:, :24]
+                    aux_target = subdata.get(("next", "observation"))
                     aux_prediction = subdata.get("state_prediction")
 
                     loss_vals = self.loss_module(subdata.to(self.device))

@@ -20,9 +20,42 @@ logger = logging.getLogger(__name__)
 from ..environments import EnvironmentTorch
 from .agent import Agent
 
+
+# Add these imports at the top of your PPO.py script
+from typing import Callable, Dict, List, Type
+from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
+# Define outside the class or as private methods within PPOTrainer
+
+def _make_env_factory(
+    env_cls: torch.Type[EnvironmentTorch],
+    scene_path: str | None, # Keep this argument for compatibility, even if not used
+    env_kwargs: Dict[str, object] | None = None,
+) -> Callable[[], EnvironmentTorch]:
+    """Create a TaskEnv factory for vectorized training."""
+    # Assuming EnvironmentTorch takes no arguments for simplicity, 
+    # adjust as needed for actual class constructor.
+    def _init() -> EnvironmentTorch:
+        # Assuming your EnvironmentTorch class constructor
+        # takes no arguments or initializes itself correctly.
+        return env_cls()
+    return _init
+
+def _build_vector_env(
+    num_envs: int, 
+    env_cls: Type[EnvironmentTorch],
+    scene_path: str | None = None
+) -> VecMonitor:
+    """Instantiate a vectorized environment with the requested number of workers."""
+    env_fns: List[Callable[[], EnvironmentTorch]] = [
+        _make_env_factory(env_cls, scene_path) for _ in range(num_envs)
+    ]
+    base_env = SubprocVecEnv(env_fns)
+    return VecMonitor(base_env)
+
 class PPOTrainer:
     def __init__(self,
         env: EnvironmentTorch,
+        num_envs: int,
         n_states: int,
         n_actions: int,
         lr: float,
@@ -39,8 +72,13 @@ class PPOTrainer:
         weight_file: str,
         prefix: str
     ):
+        
+        env_cls = type(env)
+        # Build the vectorized environment
+        self.base_env = _build_vector_env(num_envs, env_cls)
+
         self.env = TransformedEnv(
-            env,
+            self.base_env,
             Compose(
                 DoubleToFloat(),
                 StepCounter(),
@@ -215,5 +253,5 @@ class PPOTrainer:
             logger.error(f"Training stopped due to the following exception: {e}")
         finally:
             self.agent.saveWeights(self.weight_dir, prefix=self.prefix)
-
+            self.base_env.close()
         return data

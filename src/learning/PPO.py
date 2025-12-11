@@ -22,12 +22,12 @@ from .agent import Agent
 
 
 # Add these imports at the top of your PPO.py script
-from typing import Callable, Dict, List, Type
+from typing import Callable, Dict, List, Type, Union
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
 # Define outside the class or as private methods within PPOTrainer
 
 def _make_env_factory(
-    env_cls: torch.Type[EnvironmentTorch],
+    env_cls: Type[EnvironmentTorch],
     scene_path: str | None, # Keep this argument for compatibility, even if not used
     env_kwargs: Dict[str, object] | None = None,
 ) -> Callable[[], EnvironmentTorch]:

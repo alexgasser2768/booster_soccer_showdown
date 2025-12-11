@@ -18,7 +18,7 @@ teleop:  # Teleoperation data collection settings
   file_prefix: teleop_data
 
 visualize:  # Visualization settings
-  enabled: True
+  enabled: False
   weight_file: BC-1764760004.771289.pt
 
 behavior_cloning:  # Supervised Imitation Learning settings
@@ -36,8 +36,9 @@ behavior_cloning:  # Supervised Imitation Learning settings
   weight_file: BC-1764760004.771289.pt
 
 ppo:  # Proximal Policy Optimization settings
-  enabled: False
+  enabled: True
   task: WalkToBall  # WalkToBall, PenaltyKick, GoaliePenaltyKick, ObstaclePenaltyKick, KickToTarget
+  num_envs: 16        # Number of parallel environments
   epochs: 1000         # Number of times to update the policy using the collected data
   batch_size: 100     # Size of mini-batch for gradient descent
   clip_epsilon: 0.25      # Clipping parameter (epsilon)

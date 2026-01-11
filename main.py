@@ -30,7 +30,7 @@ if __name__ == "__main__":
     env_headless = config['environment']['headless']
     env_max_episode_steps = config['environment']['max_episode_steps']
 
-    simulation = Environment(env_name=env_name, headless=env_headless, max_episodes=env_max_episode_steps)
+    #simulation = Environment(env_name=env_name, headless=env_headless, max_episodes=env_max_episode_steps)
 
     if config['teleop']['enabled']:
         logger.info("Starting Teleoperation Data Collection...")
@@ -38,13 +38,14 @@ if __name__ == "__main__":
         file_prefix = config['teleop']['file_prefix']
         pos_sensitivity = config['teleop']['position_sensitivity']
         rot_sensitivity = config['teleop']['rotation_sensitivity']
+        simulation = Environment(env_name=env_name, headless=env_headless, max_episodes=env_max_episode_steps)
 
         dataset = teleop(
             simulation=simulation,
             pos_sensitivity=pos_sensitivity,
             rot_sensitivity=rot_sensitivity
         )
-
+        simulation.close()
         # Save the collected dataset
         dataset_path = f"{dataset_directory}/{file_prefix}-{time.time()}.npz"
         np.savez_compressed(
@@ -60,6 +61,7 @@ if __name__ == "__main__":
         logger.info("Starting Model Visualization...")
 
         weight_path = f"{weights_directory}/{config['visualize']['weight_file']}"
+        simulation = Environment(env_name=env_name, headless=env_headless, max_episodes=env_max_episode_steps)
 
         visualize(
             simulation=simulation,
@@ -67,6 +69,7 @@ if __name__ == "__main__":
             n_states=n_states,
             n_actions=n_actions
         )
+        simulation.close()
 
     if config['behavior_cloning']['enabled']:
         logger.info("Starting Behavior Cloning Training...")
@@ -194,5 +197,5 @@ if __name__ == "__main__":
             plt.savefig(f"{logging_directory}/plots/PPO_{time.time()}.jpg")
             plt.close('all')
 
-    simulation.close()
+    # simulation.close()
     logger.info('Finished')

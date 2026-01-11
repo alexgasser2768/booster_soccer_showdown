@@ -1,4 +1,5 @@
-sai_mujoco
+mujoco==3.3.7
+sai_mujoco==0.1.28
 sai_rl
 torch
 torchrl

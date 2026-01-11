@@ -22,19 +22,26 @@ CTRL_MAX = torch.tensor([45, 45, 30, 65, 24, 15, 45, 45, 30, 65, 24, 15], dtype=
 
 def joint_velocities_to_actions(obs: torch.tensor, actions: torch.tensor) -> torch.tensor:
     # PD control + Clamp (adapted from booster_control/t1_utils.py)
+    device = obs.device
+    actions = actions.to(device)
+    default_pos = DEFAULT_DOF_POS.to(device)
+    dof_stiffness = DOF_STIFFNESS.to(device)
+    dof_damping = DOF_DAMPING.to(device)
+    ctrl_min = CTRL_MIN.to(device)
+    ctrl_max = CTRL_MAX.to(device)
     if len(obs.shape) > 1:
         qpos = obs[:, :12]
         qvel = obs[:, 12:24]
-        targets = DEFAULT_DOF_POS.expand(obs.shape[0], -1) + actions
+        targets = default_pos.expand(obs.shape[0], -1) + actions
     else:
         qpos = obs[:12]
         qvel = obs[12:24]
-        targets = DEFAULT_DOF_POS + actions
+        targets = default_pos + actions
 
-    ctrl = DOF_STIFFNESS * (targets - qpos) - DOF_DAMPING * qvel
+    ctrl = dof_stiffness * (targets - qpos) - dof_damping * qvel
     return torch.minimum(
-        torch.maximum(ctrl, CTRL_MIN.expand_as(ctrl)),
-        CTRL_MAX.expand_as(ctrl)
+        torch.maximum(ctrl, ctrl_min.expand_as(ctrl)),
+        ctrl_max.expand_as(ctrl)
     )
 
 

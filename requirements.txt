@@ -6,7 +6,6 @@ torchrl
 imageio
 huggingface_hub
 hf_xet
-stable-baselines3
 wandb
 tqdm
 numpy==2.1.3

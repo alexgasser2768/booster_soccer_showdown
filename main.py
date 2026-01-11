@@ -97,6 +97,7 @@ if __name__ == "__main__":
         logger.info("Starting PPO Training...")
 
         task = config['ppo']['task']
+        num_envs = config['ppo']['num_envs']
         epochs = config['ppo']['epochs']
         batch_size = config['ppo']['batch_size']
         clip_epsilon = config['ppo']['clip_epsilon']
@@ -123,6 +124,7 @@ if __name__ == "__main__":
 
         trainer = PPOTrainer(
             env = env,
+            num_envs = num_envs,
             n_states = n_states,
             n_actions = n_actions,
             lr = learning_rate,

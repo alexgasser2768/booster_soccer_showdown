@@ -8,7 +8,7 @@ from torchrl.collectors import SyncDataCollector
 from torchrl.data.replay_buffers import ReplayBuffer
 from torchrl.data.replay_buffers.samplers import SamplerWithoutReplacement
 from torchrl.data.replay_buffers.storages import LazyTensorStorage
-from torchrl.envs import Compose, DoubleToFloat, StepCounter, TransformedEnv
+from torchrl.envs import Compose, DoubleToFloat, StepCounter, TransformedEnv, ParallelEnv
 from torchrl.envs.utils import ExplorationType, set_exploration_type
 from torchrl.modules import ProbabilisticActor, TanhNormal, ValueOperator
 from torchrl.objectives import ClipPPOLoss
@@ -20,9 +20,17 @@ logger = logging.getLogger(__name__)
 from ..environments import EnvironmentTorch
 from .agent import Agent
 
+
+def _create_env_instance(env_cls, headless, max_episodes):
+    """Factory function for creating environment instances in worker processes.
+    Must be at module level to be picklable."""
+    return env_cls(headless=headless, max_episodes=max_episodes)
+
+
 class PPOTrainer:
     def __init__(self,
         env: EnvironmentTorch,
+        num_envs: int,
         n_states: int,
         n_actions: int,
         lr: float,
@@ -39,14 +47,32 @@ class PPOTrainer:
         weight_file: str,
         prefix: str
     ):
+        from functools import partial
+        
+        # Store the env class and initialization parameters
+        env_cls = type(env)
+        
+        # Extract initialization parameters from the environment instance
+        # These need to be picklable (no MuJoCo objects)
+        headless = True  # Always use headless for parallel workers
+        max_episodes = env.max_episodes if hasattr(env, 'max_episodes') else 10000
+        
+        # Create a picklable factory function using partial
+        make_env = partial(_create_env_instance, env_cls, headless, max_episodes)
+        
+        # Build the vectorized environment using TorchRL's ParallelEnv
+        self.base_env = ParallelEnv(
+            num_workers=num_envs,
+            create_env_fn=make_env,
+        )
+
         self.env = TransformedEnv(
-            env,
+            self.base_env,
             Compose(
                 DoubleToFloat(),
                 StepCounter(),
             ),
         )
-
         self.device = self.env.device
 
         self.max_grad_norm = max_grad_norm
@@ -223,5 +249,5 @@ class PPOTrainer:
             logger.error(f"Training stopped due to the following exception: {e}")
         finally:
             self.agent.saveWeights(self.weight_dir, prefix=self.prefix)
-
+            self.base_env.close()
         return data

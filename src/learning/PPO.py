@@ -8,7 +8,7 @@ from torchrl.collectors import SyncDataCollector
 from torchrl.data.replay_buffers import ReplayBuffer
 from torchrl.data.replay_buffers.samplers import SamplerWithoutReplacement
 from torchrl.data.replay_buffers.storages import LazyTensorStorage
-from torchrl.envs import Compose, DoubleToFloat, StepCounter, TransformedEnv
+from torchrl.envs import Compose, DoubleToFloat, StepCounter, TransformedEnv, ParallelEnv
 from torchrl.envs.utils import ExplorationType, set_exploration_type
 from torchrl.modules import ProbabilisticActor, TanhNormal, ValueOperator
 from torchrl.objectives import ClipPPOLoss
@@ -21,36 +21,11 @@ from ..environments import EnvironmentTorch
 from .agent import Agent
 
 
-# Add these imports at the top of your PPO.py script
-from typing import Callable, Dict, List, Type, Union
-from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
-# Define outside the class or as private methods within PPOTrainer
+def _create_env_instance(env_cls, headless, max_episodes):
+    """Factory function for creating environment instances in worker processes.
+    Must be at module level to be picklable."""
+    return env_cls(headless=headless, max_episodes=max_episodes)
 
-def _make_env_factory(
-    env_cls: Type[EnvironmentTorch],
-    scene_path: str | None, # Keep this argument for compatibility, even if not used
-    env_kwargs: Dict[str, object] | None = None,
-) -> Callable[[], EnvironmentTorch]:
-    """Create a TaskEnv factory for vectorized training."""
-    # Assuming EnvironmentTorch takes no arguments for simplicity, 
-    # adjust as needed for actual class constructor.
-    def _init() -> EnvironmentTorch:
-        # Assuming your EnvironmentTorch class constructor
-        # takes no arguments or initializes itself correctly.
-        return env_cls()
-    return _init
-
-def _build_vector_env(
-    num_envs: int, 
-    env_cls: Type[EnvironmentTorch],
-    scene_path: str | None = None
-) -> VecMonitor:
-    """Instantiate a vectorized environment with the requested number of workers."""
-    env_fns: List[Callable[[], EnvironmentTorch]] = [
-        _make_env_factory(env_cls, scene_path) for _ in range(num_envs)
-    ]
-    base_env = SubprocVecEnv(env_fns)
-    return VecMonitor(base_env)
 
 class PPOTrainer:
     def __init__(self,
@@ -72,10 +47,24 @@ class PPOTrainer:
         weight_file: str,
         prefix: str
     ):
+        from functools import partial
         
+        # Store the env class and initialization parameters
         env_cls = type(env)
-        # Build the vectorized environment
-        self.base_env = _build_vector_env(num_envs, env_cls)
+        
+        # Extract initialization parameters from the environment instance
+        # These need to be picklable (no MuJoCo objects)
+        headless = True  # Always use headless for parallel workers
+        max_episodes = env.max_episodes if hasattr(env, 'max_episodes') else 10000
+        
+        # Create a picklable factory function using partial
+        make_env = partial(_create_env_instance, env_cls, headless, max_episodes)
+        
+        # Build the vectorized environment using TorchRL's ParallelEnv
+        self.base_env = ParallelEnv(
+            num_workers=num_envs,
+            create_env_fn=make_env,
+        )
 
         self.env = TransformedEnv(
             self.base_env,
@@ -84,7 +73,6 @@ class PPOTrainer:
                 StepCounter(),
             ),
         )
-
         self.device = self.env.device
 
         self.max_grad_norm = max_grad_norm

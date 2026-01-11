@@ -203,13 +203,14 @@ class PPOTrainer:
                     aux_target = subdata.get(("next", "observation"))
                     aux_prediction = subdata.get("state_prediction")
 
-                    # Extract hip angles (first joint of each leg: indices 0 and 6)
-                    hip_angles = aux_target[:, [0, 6]].to(self.device)
-                    hip_target = torch.zeros_like(hip_angles)  # Hip should be parallel to floor (angle = 0)
+                    # Extract hip angles (first joint of each leg: indices 1 and 7) and sum them
+                    hip_angles_sum = (aux_target[:, 1] + aux_target[:, 7]).to(self.device)
+                    hip_target = torch.zeros_like(hip_angles_sum)  # Sum of hip angles should be 0 (parallel to floor)
 
                     loss_vals = self.loss_module(subdata.to(self.device))
                     aux_loss = self.aux_loss_fn(aux_prediction.to(self.device), aux_target.to(self.device))
-                    hip_loss = self.hip_loss_fn(hip_angles, hip_target)
+
+                    hip_loss = self.hip_loss_fn(hip_angles_sum, hip_target)
                     loss_value = loss_vals["loss_objective"] + loss_vals["loss_critic"] + loss_vals["loss_entropy"] + aux_loss + 0.1*hip_loss
 
                     # Optimization: backward, grad clipping and optimization step

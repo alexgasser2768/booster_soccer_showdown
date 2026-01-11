@@ -38,6 +38,7 @@ behavior_cloning:  # Supervised Imitation Learning settings
 ppo:  # Proximal Policy Optimization settings
   enabled: False
   task: WalkToBall   # WalkToBall, PenaltyKick, GoaliePenaltyKick, ObstaclePenaltyKick, KickToTarget
+  num_envs: 16        # Number of parallel environments
   epochs: 10         # Number of times to update the policy using the collected data
   batch_size: 64     # Size of mini-batch for gradient descent
   clip_epsilon: 0.25     # Clipping parameter (epsilon)

@@ -56,15 +56,14 @@ class Environment:
     def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool]:
         observation, reward, terminated, truncated, info = self.env.step(action)
 
-        reward = self.getReward(observation, info)
+        # Normalize rewards
+        reward = np.clip(self.getReward(observation, info), -self.max_reward, self.max_reward) / self.max_reward
         if terminated and not info['success']:  # Terminated = dead or success, Truncated = episode done
-            reward = -self.max_reward
+            reward = -self.max_reward  # Super large negative reward for dying
         elif terminated and info['success']:
             logger.info("Success!")
         elif truncated:
             logger.info("Episode done!")
-
-        reward = np.clip(reward, -self.max_reward, self.max_reward) / self.max_reward
 
         return self.getAgentInput(observation, info), reward, terminated, truncated
 

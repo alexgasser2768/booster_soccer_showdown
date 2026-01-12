@@ -18,8 +18,8 @@ teleop:  # Teleoperation data collection settings
   file_prefix: teleop_data2
 
 visualize:  # Visualization settings
-  enabled: False
-  weight_file: PPO-1768084046.5095012.pt
+  enabled: True
+  weight_file: PPO-1768228695.7902398.pt
 
 behavior_cloning:  # Supervised Imitation Learning settings
   enabled: False

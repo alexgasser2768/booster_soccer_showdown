@@ -11,4 +11,4 @@ class WalkToBallEnv(EnvironmentTorch):
         reward = super().getReward(obs, info)
         return reward
         reward -= np.linalg.norm(info['ball_xpos_rel_robot'])
-        return 1000 + reward # Penalty for each step to encourage faster goals
+        return reward # Penalty for each step to encourage faster goals

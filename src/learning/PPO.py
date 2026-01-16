@@ -197,7 +197,7 @@ class PPOTrainer:
                 for _ in range(self.frames_per_batch // self.sub_batch_size):
                     subdata = self.replay_buffer.sample(self.sub_batch_size)
 
-                    self.prediction_module(subdata)
+                    self.prediction_module(subdata.to(self.device))
 
                     aux_target = subdata.get(("next", "observation"))
                     aux_prediction = subdata.get("state_prediction")

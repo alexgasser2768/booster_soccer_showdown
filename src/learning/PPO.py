@@ -132,7 +132,7 @@ class PPOTrainer:
             device=self.device,
             storing_device=self.device,
             policy_device=self.device,
-            env_device=self.device
+            env_device="cpu"
         )
 
         self.replay_buffer = ReplayBuffer(
@@ -152,7 +152,6 @@ class PPOTrainer:
         )
 
         self.aux_loss_fn = torch.nn.MSELoss()
-        self.hip_loss_fn = torch.nn.MSELoss()
 
         self.loss_module = ClipPPOLoss(
             actor_network=self.policy_module,
@@ -179,7 +178,7 @@ class PPOTrainer:
         stepcount_str = f"step count (max): {logs['step_count'][-1]}"
         cum_reward_str = f"cumulative reward (max): {logs['reward'][-1] * logs['step_count'][-1]:4.4f}"
         lr_str = f"lr policy: {logs['lr'][-1]:4.4f}"
-        loss_str = f"loss_objective: {logs['loss_objective'][-1]:4.4f}, loss_critic: {logs['loss_critic'][-1]:4.4f}, loss_entropy: {logs['loss_entropy'][-1]:4.4f}, loss_auxiliary: {logs['loss_auxiliary'][-1]:4.4f}, loss_hip: {logs['loss_hip'][-1]:4.4f}"
+        loss_str = f"loss_objective: {logs['loss_objective'][-1]:4.4f}, loss_critic: {logs['loss_critic'][-1]:4.4f}, loss_entropy: {logs['loss_entropy'][-1]:4.4f}, loss_auxiliary: {logs['loss_auxiliary'][-1]:4.4f}"
 
         logger.info(", ".join([avg_reward_str, stepcount_str, cum_reward_str, lr_str, loss_str]))
 
@@ -187,7 +186,14 @@ class PPOTrainer:
         logs = defaultdict(list)
 
         for _, tensordict_data in enumerate(tqdm(self.collector, total=self.total_frames // self.frames_per_batch)):
-            loss_obj, loss_critic, loss_entropy, loss_aux, loss_hip = 0, 0, 0, 0, 0
+            with torch.no_grad():
+                self.advantage_module(tensordict_data)  # The advantage signal depends on the value network trained below
+
+            data_view = tensordict_data.reshape(-1)
+            self.replay_buffer.extend(data_view.cpu())
+            
+            
+            loss_obj, loss_critic, loss_entropy, loss_aux = 0, 0, 0, 0
 
             for _ in range(self.num_epochs):
                 self.advantage_module(tensordict_data)  # The advantage signal depends on the value network trained below
@@ -207,14 +213,14 @@ class PPOTrainer:
                     # hip_angles_sum = (aux_target[:, 1] + aux_target[:, 7]).to(self.device)
                     # hip_target = torch.zeros_like(hip_angles_sum)  # Sum of hip angles should be 0 (parallel to floor)
 
-                    hip_angles = aux_prediction[:, [0, 6]].to(self.device)
-                    hip_target = torch.zeros_like(hip_angles)  # Hip should be parallel to floor (angle = 0)
+                    # hip_angles = aux_prediction[:, [0, 6]].to(self.device)
+                    # hip_target = torch.zeros_like(hip_angles)  # Hip should be parallel to floor (angle = 0)
 
                     loss_vals = self.loss_module(subdata.to(self.device))
                     aux_loss = self.aux_loss_fn(aux_prediction.to(self.device), aux_target.to(self.device))
 
-                    hip_loss = self.hip_loss_fn(hip_angles, hip_target)
-                    loss_value = loss_vals["loss_objective"] + loss_vals["loss_critic"] + loss_vals["loss_entropy"] + aux_loss + 0.1*hip_loss
+                    # hip_loss = self.hip_loss_fn(hip_angles, hip_target)
+                    loss_value = loss_vals["loss_objective"] + loss_vals["loss_critic"] + loss_vals["loss_entropy"] + aux_loss
 
                     # Optimization: backward, grad clipping and optimization step
                     loss_value.backward()
@@ -226,14 +232,12 @@ class PPOTrainer:
                     loss_critic += loss_vals["loss_critic"].item()
                     loss_entropy += loss_vals["loss_entropy"].item()
                     loss_aux += aux_loss.item()
-                    loss_hip += hip_loss.item()
 
             n = self.num_epochs * self.frames_per_batch // self.sub_batch_size
             logs["loss_objective"].append(loss_obj / n)
             logs["loss_critic"].append(loss_critic / n)
             logs["loss_entropy"].append(loss_entropy / n)
             logs["loss_auxiliary"].append(loss_aux / n)
-            logs["loss_hip"].append(loss_hip / n)
 
             logs["reward"].append(tensordict_data["next", "reward"].mean().item())
             logs["step_count"].append(tensordict_data["step_count"].max().item())
@@ -241,7 +245,9 @@ class PPOTrainer:
 
             self._logData(logs)
             self.scheduler.step()
+            self.collector.update_policy_weights_()
 
+            
         return logs
 
     def train(self) -> defaultdict | None:
@@ -252,5 +258,14 @@ class PPOTrainer:
             logger.error(f"Training stopped due to the following exception: {e}")
         finally:
             self.agent.saveWeights(self.weight_dir, prefix=self.prefix)
-            self.base_env.close()
+            try:
+                self.collector.shutdown()  # ensure collector closes its envs
+            except Exception as shutdown_err:
+                logger.debug(f"Collector shutdown skipped: {shutdown_err}")
+            try:
+                self.base_env.close()      # close if still open
+            except RuntimeError:
+                logger.debug("Base env already closed; skipping.")
+            except Exception as close_err:
+                logger.warning(f"Error closing base env: {close_err}")
         return data

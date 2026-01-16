@@ -22,12 +22,6 @@ class Agent(nn.Module):
             nn.LeakyReLU(),
             nn.Linear(LAYER_SIZE, LAYER_SIZE),
             nn.LeakyReLU(),
-            nn.Linear(LAYER_SIZE, LAYER_SIZE),
-            nn.LeakyReLU(),
-            nn.Linear(LAYER_SIZE, LAYER_SIZE),
-            nn.LeakyReLU(),
-            nn.Linear(LAYER_SIZE, LAYER_SIZE),
-            nn.LeakyReLU(),
         )
 
         # The following network is to learn an embedding that can be
@@ -43,12 +37,16 @@ class Agent(nn.Module):
 
         self.auxiliary_head = nn.Sequential(  # For predicting the next state (FK)
             self.actor_shared,
+            nn.Linear(LAYER_SIZE, LAYER_SIZE),
+            nn.LeakyReLU(),
             nn.Linear(LAYER_SIZE, n_states),
             nn.Tanh(),
         )
 
         self.actor_head = nn.Sequential(  # For deciding the action outputs (IK)
             self.actor_shared,
+            nn.Linear(LAYER_SIZE, LAYER_SIZE),
+            nn.LeakyReLU(),
             nn.Linear(LAYER_SIZE, 2*n_actions),
             nn.Tanh(),
             NormalParamExtractor(),

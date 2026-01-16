@@ -40,7 +40,6 @@ class Agent(nn.Module):
             nn.Linear(LAYER_SIZE, LAYER_SIZE),
             nn.LeakyReLU(),
             nn.Linear(LAYER_SIZE, n_states),
-            nn.Tanh(),
         )
 
         self.actor_head = nn.Sequential(  # For deciding the action outputs (IK)

@@ -165,7 +165,7 @@ class PPOTrainer:
         )
 
         self.optim = torch.optim.Adam(
-            self.loss_module.parameters(),
+            self.agent.parameters(),
             lr
         )
 
@@ -191,16 +191,9 @@ class PPOTrainer:
 
             data_view = tensordict_data.reshape(-1)
             self.replay_buffer.extend(data_view.cpu())
-            
-            
+
             loss_obj, loss_critic, loss_entropy, loss_aux = 0, 0, 0, 0
-
             for _ in range(self.num_epochs):
-                self.advantage_module(tensordict_data)  # The advantage signal depends on the value network trained below
-
-                data_view = tensordict_data.reshape(-1)
-                self.replay_buffer.extend(data_view.cpu())
-
                 for _ in range(self.frames_per_batch // self.sub_batch_size):
                     subdata = self.replay_buffer.sample(self.sub_batch_size)
 
@@ -209,22 +202,14 @@ class PPOTrainer:
                     aux_target = subdata.get(("next", "observation"))
                     aux_prediction = subdata.get("state_prediction")
 
-                    # Extract hip angles (first joint of each leg: indices 1 and 7) and sum them
-                    # hip_angles_sum = (aux_target[:, 1] + aux_target[:, 7]).to(self.device)
-                    # hip_target = torch.zeros_like(hip_angles_sum)  # Sum of hip angles should be 0 (parallel to floor)
-
-                    # hip_angles = aux_prediction[:, [0, 6]].to(self.device)
-                    # hip_target = torch.zeros_like(hip_angles)  # Hip should be parallel to floor (angle = 0)
-
                     loss_vals = self.loss_module(subdata.to(self.device))
                     aux_loss = self.aux_loss_fn(aux_prediction.to(self.device), aux_target.to(self.device))
 
-                    # hip_loss = self.hip_loss_fn(hip_angles, hip_target)
                     loss_value = loss_vals["loss_objective"] + loss_vals["loss_critic"] + loss_vals["loss_entropy"] + aux_loss
 
                     # Optimization: backward, grad clipping and optimization step
                     loss_value.backward()
-                    torch.nn.utils.clip_grad_norm_(self.loss_module.parameters(), self.max_grad_norm)
+                    torch.nn.utils.clip_grad_norm_(self.agent.parameters(), self.max_grad_norm)
                     self.optim.step()
                     self.optim.zero_grad()
 
@@ -247,7 +232,6 @@ class PPOTrainer:
             self.scheduler.step()
             self.collector.update_policy_weights_()
 
-            
         return logs
 
     def train(self) -> defaultdict | None:

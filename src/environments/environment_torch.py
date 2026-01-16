@@ -1,6 +1,5 @@
 import logging, warnings
 
-import numpy as np
 import torch
 from tensordict import TensorDict, TensorDictBase
 

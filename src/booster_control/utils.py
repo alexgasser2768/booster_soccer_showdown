@@ -9,7 +9,8 @@ DEVICE = (
 
 SIGMOID = lambda x: 1 / (1 + np.exp(-x))
 
-SCALE_FACTOR = 25.0
+POS_SCALE = 1.0  # 25.0
+VEL_SCALE = 1.0  # 100.0
 GOALKEEPER_WIDTH = 0.5
 
 # Constants (adapted from booster_control/t1_utils.py)
@@ -21,6 +22,7 @@ CTRL_MAX = torch.tensor([45, 45, 30, 65, 24, 15, 45, 45, 30, 65, 24, 15], dtype=
 
 
 def joint_velocities_to_actions(obs: torch.tensor, actions: torch.tensor) -> torch.tensor:
+    return 100 * actions  # Let model learn torques directly
     # PD control + Clamp (adapted from booster_control/t1_utils.py)
     device = obs.device
     actions = actions.to(device)
@@ -56,21 +58,24 @@ def create_input_vector(info: dict, joint_obs: np.ndarray) -> np.ndarray:
     Returns:
         A numpy array representing the scaled input vector for the model.
     """
-    scaled_joint_obs = np.tanh(joint_obs)
+    scaled_joint_obs = np.concatenate((
+        joint_obs[:12] / POS_SCALE,
+        joint_obs[12:24] / VEL_SCALE
+    ))
 
     robot_orientation = np.array(info['robot_quat'])
-    robot_angular_velocity = np.tanh(np.array(info['robot_gyro']))
-    robot_linear_velocity = np.tanh(np.array(info['robot_velocimeter']))
-    robot_linear_acceleration = np.tanh(np.array(info['robot_accelerometer']))
+    robot_angular_velocity = np.array(info['robot_gyro']) / VEL_SCALE
+    robot_linear_velocity = np.array(info['robot_velocimeter']) / VEL_SCALE
+    robot_linear_acceleration = np.array(info['robot_accelerometer']) / VEL_SCALE
 
-    ball_pos_rel_robot = np.array(info['ball_xpos_rel_robot']) / SCALE_FACTOR
-    ball_velp_rel_robot = np.tanh(np.array(info['ball_velp_rel_robot']))
-    ball_velr_rel_robot = np.tanh(np.array(info['ball_velr_rel_robot']))
+    ball_pos_rel_robot = np.array(info['ball_xpos_rel_robot']) / POS_SCALE
+    ball_velp_rel_robot = np.array(info['ball_velp_rel_robot']) / VEL_SCALE
+    ball_velr_rel_robot = np.array(info['ball_velr_rel_robot']) / VEL_SCALE
 
-    goal_pos_rel_robot = np.array(info[ 'goal_team_0_rel_robot']) / SCALE_FACTOR
-    goalkeeper_pos_rel_robot = np.array(info['goalkeeper_team_0_xpos_rel_robot']) / SCALE_FACTOR
+    goal_pos_rel_robot = np.array(info[ 'goal_team_0_rel_robot']) / POS_SCALE
+    goalkeeper_pos_rel_robot = np.array(info['goalkeeper_team_0_xpos_rel_robot']) / POS_SCALE
 
-    target_pos_rel_robot = np.array(info['target_xpos_rel_robot']) / SCALE_FACTOR
+    target_pos_rel_robot = np.array(info['target_xpos_rel_robot']) / POS_SCALE
     target_velp_rel_robot = np.zeros((3, ))  # Target is usually static
 
     if np.all(goalkeeper_pos_rel_robot == 0) and np.all(target_pos_rel_robot == 0):  # Case where no goalkeeper and no target info is given
@@ -92,15 +97,15 @@ def create_input_vector(info: dict, joint_obs: np.ndarray) -> np.ndarray:
                 goal_pos_rel_robot[0],
                 (goal_pos_rel_robot[1] - goal_width / 2 + block_y_max) / 2,
                 goal_pos_rel_robot[2]
-            ]) / SCALE_FACTOR
+            ]) / POS_SCALE
         else:
             target_pos_rel_robot = np.array([
                 goal_pos_rel_robot[0],
                 (block_y_min + goal_pos_rel_robot[1] + goal_width / 2) / 2,
                 goal_pos_rel_robot[2]
-            ]) / SCALE_FACTOR
+            ]) / POS_SCALE
 
-        target_velp_rel_robot = np.tanh(np.array(info['goalkeeper_team_0_velp_rel_robot']))
+        target_velp_rel_robot = np.array(info['goalkeeper_team_0_velp_rel_robot']) / VEL_SCALE
 
     return np.concatenate([
         scaled_joint_obs,

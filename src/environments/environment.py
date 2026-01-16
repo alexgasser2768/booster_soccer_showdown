@@ -63,8 +63,10 @@ class Environment:
             reward = -self.max_reward  # Super large negative reward for dying
         elif terminated and info['success']:
             logger.info("Success!")
+            reward = self.max_reward
         elif truncated:
             logger.info("Episode done!")
+            reward = self.max_reward  # To encourage robot to survive for now. Will be removed later
 
         return self.getAgentInput(observation, info), reward, terminated, truncated
 
